@@ -12,7 +12,7 @@
         <header class="app-header">
             <div class="header-title">Clinical Co-Pilot</div>
             <div class="header-status" id="header-status">
-                <span class="status-dot"></span> System Connected
+                <span class="status-dot"></span> Online Mode
             </div>
         </header>
 
@@ -21,6 +21,17 @@
             <div class="card main-title-card">
                 <h1>Clinical Diagnostic Co-Pilot</h1>
                 <p class="subtitle">Decision Support System</p>
+            </div>
+
+            <!-- Mode Selector Box -->
+            <div class="card mode-card">
+                <div class="status-row">
+                    <span class="label">Inference Mode:</span>
+                    <select id="home-mode-select" class="mode-select" onchange="handleModeChange(this.value)">
+                        <option value="online" selected>Online Mode (FastAPI Server)</option>
+                        <option value="offline">Offline Mode (Local Engine)</option>
+                    </select>
+                </div>
             </div>
 
             <div class="card status-card">
@@ -179,7 +190,6 @@
             <div class="action-container margin-top">
                 <button class="btn btn-primary" onclick="showScreen('screen-assessment')">New Assessment</button>
             </div>
-
         </section>
     </div>
 

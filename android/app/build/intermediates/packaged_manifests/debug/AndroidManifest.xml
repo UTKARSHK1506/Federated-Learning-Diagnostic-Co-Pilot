@@ -24,7 +24,6 @@
         android:extractNativeLibs="false"
         android:label="Diagnostic Co-Pilot"
         android:supportsRtl="true"
-        android:testOnly="true"
         android:theme="@style/Theme.FederatedCopilot"
         android:usesCleartextTraffic="true" >
         <activity
