@@ -33,18 +33,28 @@ async function handleAssessmentSubmit(event) {
     btn.disabled = true;
 
     const formData = new FormData(event.target);
+    
+    // Raw inputs
+    const heightCm = parseFloat(formData.get('height'));
+    const weightKg = parseFloat(formData.get('weight'));
+    const apHi = parseInt(formData.get('ap_hi'));
+    const apLo = parseInt(formData.get('ap_lo'));
+    const cholVal = parseInt(formData.get('cholesterol'));
+    const smokeVal = parseInt(formData.get('smoke'));
+    const activeVal = parseInt(formData.get('active'));
+
     const payload = {
         age: parseFloat(formData.get('age')),
         gender: parseInt(formData.get('gender')),
-        height: parseFloat(formData.get('height')),
-        weight: parseFloat(formData.get('weight')),
-        ap_hi: parseInt(formData.get('ap_hi')),
-        ap_lo: parseInt(formData.get('ap_lo')),
-        cholesterol: parseInt(formData.get('cholesterol')),
+        height: heightCm,
+        weight: weightKg,
+        ap_hi: apHi,
+        ap_lo: apLo,
+        cholesterol: cholVal,
         gluc: parseInt(formData.get('gluc')),
-        smoke: parseInt(formData.get('smoke')),
+        smoke: smokeVal,
         alco: parseInt(formData.get('alco')),
-        active: parseInt(formData.get('active'))
+        active: activeVal
     };
 
     try {
@@ -62,21 +72,34 @@ async function handleAssessmentSubmit(event) {
 
         const data = await response.json();
 
-        // Update Screen 3 UI
+        // 1. Primary Risk & Probability Focus
         const boxEl = document.getElementById('res-box');
         const predEl = document.getElementById('res-prediction');
 
         if (data.predicted_class === 1) {
-            predEl.innerText = 'Cardiovascular Risk Detected';
-            boxEl.className = 'prediction-box risk-high';
+            predEl.innerText = 'Elevated Risk';
+            boxEl.className = 'risk-primary-box risk-high';
         } else {
-            predEl.innerText = 'No Significant Risk Detected';
-            boxEl.className = 'prediction-box risk-low';
+            predEl.innerText = 'Lower Risk';
+            boxEl.className = 'risk-primary-box risk-low';
         }
 
+        // Format probability to 2 decimal places e.g. 73.88%
         const pct = (data.probability * 100).toFixed(2);
         document.getElementById('res-probability').innerText = `${pct}%`;
-        document.getElementById('res-model').innerText = data.model_type || 'Federated FNN';
+
+        // 2. Derive Patient Summary Values (For display reference only)
+        document.getElementById('summary-bp').innerText = `${apHi}/${apLo} mmHg`;
+        
+        const heightM = heightCm / 100.0;
+        const bmi = (heightM > 0) ? (weightKg / (heightM * heightM)).toFixed(1) : 'N/A';
+        document.getElementById('summary-bmi').innerText = `${bmi} kg/m²`;
+
+        const cholMap = { 1: 'Normal', 2: 'Above Normal', 3: 'Well Above Normal' };
+        document.getElementById('summary-cholesterol').innerText = cholMap[cholVal] || 'Normal';
+
+        document.getElementById('summary-activity').innerText = activeVal === 1 ? 'Active' : 'Inactive';
+        document.getElementById('summary-smoking').innerText = smokeVal === 1 ? 'Smoker' : 'Non-Smoker';
 
         showScreen('screen-result');
     } catch (err) {

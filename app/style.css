@@ -101,7 +101,7 @@ body {
 .card {
     background-color: #FFFFFF;
     border: 1px solid #E2E8F0;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 18px;
     margin-bottom: 16px;
 }
@@ -253,72 +253,123 @@ form {
     font-size: 0.88rem;
 }
 
-/* Result Screen Layout & Hierarchy */
+/* RESULT SCREEN DESIGN & HIERARCHY */
 .result-card {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
+    padding: 20px;
 }
 
-.result-card h2 {
+.result-header h2 {
     font-size: 1.2rem;
     color: #0F172A;
     font-weight: 700;
     border-bottom: 1px solid #E2E8F0;
     padding-bottom: 8px;
-    margin-bottom: 4px;
 }
 
-.prediction-box {
-    padding: 16px;
-    border-radius: 8px;
+/* Primary Risk Box */
+.risk-primary-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 22px 16px;
+    border-radius: 12px;
     text-align: center;
-    margin-bottom: 4px;
+    gap: 6px;
 }
 
-.prediction-box.risk-high {
+.risk-primary-box.risk-high {
     background-color: #FEF2F2;
     border: 1px solid #FCA5A5;
+}
+
+.risk-primary-box.risk-low {
+    background-color: #ECFDF5;
+    border: 1px solid #6EE7B7;
+}
+
+.risk-status-tag {
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.risk-high .risk-status-tag {
+    background-color: #FEE2E2;
     color: #991B1B;
 }
 
-.prediction-box.risk-low {
-    background-color: #ECFDF5;
-    border: 1px solid #6EE7B7;
+.risk-low .risk-status-tag {
+    background-color: #D1FAE5;
     color: #065F46;
 }
 
-.prediction-box .prediction-title {
-    font-size: 1.15rem;
+.probability-display {
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: #1E3A8A;
+    letter-spacing: -0.02em;
+    margin: 4px 0;
+}
+
+.risk-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Patient Summary Section */
+.patient-summary-section {
+    border-top: 1px solid #E2E8F0;
+    padding-top: 14px;
+}
+
+.summary-section-title {
+    font-size: 0.85rem;
     font-weight: 700;
-    margin-bottom: 2px;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
 }
 
-.result-metric-row {
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.summary-item {
+    background-color: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 10px 12px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid #F1F5F9;
+    flex-direction: column;
+    gap: 3px;
 }
 
-.result-metric-row:last-child {
-    border-bottom: none;
+.summary-item.full-width-item {
+    grid-column: span 2;
 }
 
-.result-metric-row .metric-label {
-    font-size: 0.9rem;
+.summary-label {
+    font-size: 0.75rem;
     color: #64748B;
     font-weight: 500;
 }
 
-.result-metric-row .metric-value {
-    font-size: 1.2rem;
+.summary-value {
+    font-size: 0.95rem;
     font-weight: 700;
     color: #0F172A;
 }
 
-.result-metric-row .metric-value.highlight {
-    font-size: 1.4rem;
-    color: #1E3A8A;
-}
+

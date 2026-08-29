@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Federated Diagnostic Co-Pilot</title>
+    <title>Diagnostic Co-Pilot</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,21 +19,21 @@
         <!-- SCREEN 1: HOME / DASHBOARD -->
         <section id="screen-home" class="screen active">
             <div class="card main-title-card">
-                <h1>Federated Diagnostic Co-Pilot</h1>
-                <p class="subtitle">Clinical Decision Support Prototype</p>
+                <h1>Clinical Diagnostic Co-Pilot</h1>
+                <p class="subtitle">Decision Support System</p>
             </div>
 
             <div class="card status-card">
                 <div class="status-row">
-                    <span class="label">Global Model Status:</span>
+                    <span class="label">System Status:</span>
                     <span class="value badge-success" id="model-status-text">Operational</span>
                 </div>
                 <div class="status-row">
-                    <span class="label">Federated Rounds:</span>
+                    <span class="label">Rounds Completed:</span>
                     <span class="value" id="rounds-text">5</span>
                 </div>
                 <div class="status-row">
-                    <span class="label">Participating Clinics:</span>
+                    <span class="label">Participating Sites:</span>
                     <span class="value" id="clinics-text">3</span>
                 </div>
             </div>
@@ -88,18 +88,18 @@
                     <div class="form-group full-width">
                         <label for="cholesterol">Cholesterol Level</label>
                         <select id="cholesterol" name="cholesterol" required>
-                            <option value="1">1: Normal</option>
-                            <option value="2" selected>2: Above Normal</option>
-                            <option value="3">3: Well Above Normal</option>
+                            <option value="1">Normal</option>
+                            <option value="2" selected>Above Normal</option>
+                            <option value="3">Well Above Normal</option>
                         </select>
                     </div>
 
                     <div class="form-group full-width">
                         <label for="gluc">Glucose Level</label>
                         <select id="gluc" name="gluc" required>
-                            <option value="1" selected>1: Normal</option>
-                            <option value="2">2: Above Normal</option>
-                            <option value="3">3: Well Above Normal</option>
+                            <option value="1" selected>Normal</option>
+                            <option value="2">Above Normal</option>
+                            <option value="3">Well Above Normal</option>
                         </select>
                     </div>
 
@@ -137,26 +137,49 @@
         <!-- SCREEN 3: RESULT -->
         <section id="screen-result" class="screen">
             <div class="card result-card">
-                <h2>Assessment Result</h2>
-                
-                <div class="prediction-box risk-high" id="res-box">
-                    <div class="prediction-title" id="res-prediction">Cardiovascular Risk Detected</div>
+                <div class="result-header">
+                    <h2>Assessment Result</h2>
                 </div>
 
-                <div class="result-metric-row">
-                    <span class="metric-label">Probability:</span>
-                    <span class="metric-value highlight" id="res-probability">73.88%</span>
+                <!-- Main Visual Focus: Estimated Risk & Probability -->
+                <div class="risk-primary-box risk-high" id="res-box">
+                    <div class="risk-status-tag" id="res-prediction">Elevated Risk</div>
+                    <div class="probability-display" id="res-probability">73.88%</div>
+                    <div class="risk-label">Estimated Risk</div>
                 </div>
 
-                <div class="result-metric-row">
-                    <span class="metric-label">Model:</span>
-                    <span class="metric-value" id="res-model">Federated FNN</span>
+                <!-- Derived Patient Summary Factors -->
+                <div class="patient-summary-section">
+                    <div class="summary-section-title">Patient Summary</div>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="summary-label">Blood Pressure</span>
+                            <span class="summary-value" id="summary-bp">140/90 mmHg</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">BMI</span>
+                            <span class="summary-value" id="summary-bmi">25.7 kg/m²</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Cholesterol</span>
+                            <span class="summary-value" id="summary-cholesterol">Above Normal</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Physical Activity</span>
+                            <span class="summary-value" id="summary-activity">Active</span>
+                        </div>
+                        <div class="summary-item full-width-item">
+                            <span class="summary-label">Smoking Status</span>
+                            <span class="summary-value" id="summary-smoking">Non-Smoker</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="action-container margin-top">
-                <button class="btn btn-secondary" onclick="showScreen('screen-assessment')">New Assessment</button>
+                <button class="btn btn-primary" onclick="showScreen('screen-assessment')">New Assessment</button>
             </div>
+
         </section>
     </div>
 
