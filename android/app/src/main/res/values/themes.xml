@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.FederatedCopilot" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_blue</item>
+        <item name="colorPrimaryVariant">@color/primary_blue</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="android:statusBarColor">@color/primary_blue</item>
+    </style>
+</resources>

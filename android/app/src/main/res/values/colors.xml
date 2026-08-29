@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_blue">#1E3A8A</color>
+    <color name="accent_blue">#2563EB</color>
+    <color name="background_gray">#F8FAFC</color>
+    <color name="card_border">#CBD5E1</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#475569</color>
+    <color name="badge_success_bg">#D1FAE5</color>
+    <color name="badge_success_text">#065F46</color>
+    <color name="risk_high_bg">#FEF2F2</color>
+    <color name="risk_high_text">#991B1B</color>
+    <color name="risk_high_border">#FCA5A5</color>
+    <color name="risk_low_bg">#ECFDF5</color>
+    <color name="risk_low_text">#065F46</color>
+    <color name="risk_low_border">#6EE7B7</color>
+</resources>
