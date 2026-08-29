@@ -136,10 +136,3 @@ federated-diagnostic-copilot/
 * **`requirements.txt`**: Specifies Python package dependencies required for the project.
 * **`README.md`**: Technical overview and documentation for the project.
 
-## Medical Prototype Disclaimer
-
-This repository is a **research and hackathon clinical decision-support prototype**. It is **not** a medical device and is not intended for clinical diagnosis, treatment planning, or direct patient care.
-
-* **No Regulatory Approval**: This software has not undergone clinical validation, safety testing, or certification by health authorities (e.g., FDA, CE-mark).
-* **Data Safety**: Experiments should be conducted strictly using synthetic or properly anonymized datasets. Do not ingest unencrypted or non-consented Protected Health Information (PHI).
-* **Production Requirements**: Real-world healthcare deployment would require extensive clinical trial validation, robust security controls, differential privacy guarantees, and regulatory compliance approval.
