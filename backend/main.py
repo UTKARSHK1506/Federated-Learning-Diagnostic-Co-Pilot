@@ -15,7 +15,7 @@ from backend.schemas import PatientPredictRequest, PredictionResponse, ModelInfo
 from backend.model_service import model_service
 
 app = FastAPI(
-    title="Federated Diagnostic Co-Pilot API",
+    title="CardioSense API",
     description="REST API service for single-patient cardiovascular disease risk prediction using the global federated model.",
     version="1.0.0"
 )
@@ -70,6 +70,14 @@ if os.path.exists(app_dir):
     @app.get("/script.js", tags=["UI"])
     def get_js():
         return FileResponse(os.path.join(app_dir, "script.js"))
+
+    @app.get("/global_model_weights.json", tags=["UI"])
+    def get_weights():
+        return FileResponse(os.path.join(app_dir, "global_model_weights.json"))
+
+    @app.get("/scaler_params.json", tags=["UI"])
+    def get_scaler():
+        return FileResponse(os.path.join(app_dir, "scaler_params.json"))
 
 
 if __name__ == '__main__':

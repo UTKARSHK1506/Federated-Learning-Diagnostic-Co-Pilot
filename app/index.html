@@ -2,196 +2,438 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diagnostic Co-Pilot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#1E3A8A">
+    <title>CardioSense - Cardiovascular Decision Support</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="mobile-container">
-        <!-- Header -->
+    <main class="app-shell">
+        <!-- Top Clinical Header -->
         <header class="app-header">
-            <div class="header-title">Clinical Co-Pilot</div>
-            <div class="header-status" id="header-status">
-                <span class="status-dot"></span> Online Mode
+            <div class="brand-section">
+                <div class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="header-title">CardioSense</div>
+                    <div class="header-tagline">Cardiovascular Decision Support</div>
+                </div>
+            </div>
+
+            <!-- Clear Offline / Online Status Indicator -->
+            <div class="header-status" id="header-status" role="status" aria-live="polite">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-label">Online Mode</span>
             </div>
         </header>
 
-        <!-- SCREEN 1: HOME / DASHBOARD -->
-        <section id="screen-home" class="screen active">
-            <div class="card main-title-card">
-                <h1>Clinical Diagnostic Co-Pilot</h1>
-                <p class="subtitle">Decision Support System</p>
-            </div>
+        <!-- Navigation Tabs -->
+        <nav class="app-nav" aria-label="Main Navigation">
+            <button class="nav-tab active" id="tab-home" onclick="showScreen('screen-home')" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Dashboard</span>
+            </button>
+            <button class="nav-tab" id="tab-assessment" onclick="showScreen('screen-assessment')" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <span>Assessment</span>
+            </button>
+            <button class="nav-tab" id="tab-federated" onclick="showScreen('screen-federated')" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                <span>Federated</span>
+            </button>
+        </nav>
 
-            <!-- Mode Selector Box -->
-            <div class="card mode-card">
-                <div class="status-row">
-                    <span class="label">Inference Mode:</span>
-                    <select id="home-mode-select" class="mode-select" onchange="handleModeChange(this.value)">
-                        <option value="online" selected>Online Mode (FastAPI Server)</option>
-                        <option value="offline">Offline Mode (Local Engine)</option>
-                    </select>
+        <!-- Screen Content Container -->
+        <div class="screen-container">
+
+            <!-- ==========================================
+                 SCREEN 1: HOME / DASHBOARD
+                 ========================================== -->
+            <section id="screen-home" class="screen active" aria-labelledby="home-heading">
+                <!-- Main Title Card -->
+                <div class="card main-title-card">
+                    <h1 id="home-heading">CardioSense Diagnostic Co-Pilot</h1>
+                    <p class="subtitle">Decision Support System</p>
+                    <p class="description">Cardiovascular clinical decision support with local AI inference.</p>
                 </div>
-            </div>
 
-            <div class="card status-card">
-                <div class="status-row">
-                    <span class="label">System Status:</span>
-                    <span class="value badge-success" id="model-status-text">Operational</span>
+                <!-- Inference Mode Selection Card -->
+                <div class="card mode-card">
+                    <div class="mode-header">
+                        <div class="mode-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1E3A8A" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                            Inference Mode
+                        </div>
+                        <select id="home-mode-select" class="mode-select" onchange="handleModeChange(this.value)" aria-label="Select Inference Mode">
+                            <option value="online" selected>Online Mode (FastAPI Server)</option>
+                            <option value="offline">Offline Mode (Local Engine)</option>
+                        </select>
+                    </div>
+                    <div class="mode-description" id="mode-description-text">
+                        Connected to central FastAPI server for remote inference verification and federated parameter synchronization.
+                    </div>
                 </div>
-                <div class="status-row">
-                    <span class="label">Rounds Completed:</span>
-                    <span class="value" id="rounds-text">5</span>
+
+                <!-- System Overview Section -->
+                <div class="card">
+                    <div class="section-label">System Overview</div>
+                    <div class="system-grid">
+                        <div class="system-metric-card">
+                            <span class="system-metric-label">System Status</span>
+                            <span class="system-metric-value">
+                                <span class="badge-operational" id="model-status-text">
+                                    <span class="status-dot"></span> Operational
+                                </span>
+                            </span>
+                        </div>
+                        <div class="system-metric-card">
+                            <span class="system-metric-label">Rounds Completed</span>
+                            <span class="system-metric-value" id="rounds-text">5</span>
+                        </div>
+                        <div class="system-metric-card">
+                            <span class="system-metric-label">Participating Sites</span>
+                            <span class="system-metric-value" id="clinics-text">3</span>
+                        </div>
+                        <div class="system-metric-card">
+                            <span class="system-metric-label">Local Patient Data</span>
+                            <span class="system-metric-value">
+                                <span class="badge-privacy">Protected</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                <div class="status-row">
-                    <span class="label">Participating Sites:</span>
-                    <span class="value" id="clinics-text">3</span>
+
+                <!-- Offline Information Card -->
+                <div class="info-card" id="offline-banner-card">
+                    <div class="info-card-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span id="offline-banner-title">Offline-First Clinical Architecture</span>
+                    </div>
+                    <p id="offline-banner-desc">
+                        Analysis is performed locally on-device. Model updates synchronize when network connectivity is available.
+                    </p>
                 </div>
-            </div>
 
-            <div class="action-container">
-                <button class="btn btn-primary" onclick="showScreen('screen-assessment')">Patient Assessment</button>
-            </div>
-        </section>
+                <!-- Main Action Container -->
+                <div class="action-container">
+                    <button class="btn btn-primary" onclick="showScreen('screen-assessment')" type="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                        PATIENT ASSESSMENT
+                    </button>
+                </div>
+            </section>
 
-        <!-- SCREEN 2: PATIENT ASSESSMENT -->
-        <section id="screen-assessment" class="screen">
-            <div class="screen-header">
-                <h2>Patient Assessment</h2>
-                <button class="btn-text" onclick="showScreen('screen-home')">Cancel</button>
-            </div>
+            <!-- ==========================================
+                 SCREEN 2: PATIENT ASSESSMENT FORM
+                 ========================================== -->
+            <section id="screen-assessment" class="screen" aria-labelledby="assessment-heading">
+                <div class="screen-header">
+                    <div>
+                        <h2 id="assessment-heading">Patient Assessment</h2>
+                        <p>Enter patient physiological and lifestyle data for cardiovascular risk analysis</p>
+                    </div>
+                    <button class="btn-text" onclick="showScreen('screen-home')" type="button">Return</button>
+                </div>
 
-            <form id="assessment-form" onsubmit="handleAssessmentSubmit(event)">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="age">Age (Years)</label>
-                        <input type="number" step="0.1" id="age" name="age" value="55.5" required min="1" max="120">
+                <!-- Inline Validation Alert Box -->
+                <div class="validation-alert" id="validation-alert" role="alert">
+                    <span>Please correct the following fields before proceeding:</span>
+                    <ul id="validation-errors-list"></ul>
+                </div>
+
+                <form id="assessment-form" onsubmit="handleAssessmentSubmit(event)" novalidate>
+                    <div class="form-section-title">Demographics &amp; Body Metrics</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="age">
+                                Age <span class="unit">(Years)</span>
+                            </label>
+                            <input type="number" step="0.1" id="age" name="age" value="55.5" required min="1" max="120" placeholder="e.g. 55.5">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="gender">
+                                Gender <span class="unit">(Biological)</span>
+                            </label>
+                            <select id="gender" name="gender" required>
+                                <option value="1" selected>Female</option>
+                                <option value="2">Male</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="height">
+                                Height <span class="unit">(cm)</span>
+                            </label>
+                            <input type="number" step="0.1" id="height" name="height" value="165.0" required min="50" max="250" placeholder="e.g. 165.0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="weight">
+                                Weight <span class="unit">(kg)</span>
+                            </label>
+                            <input type="number" step="0.1" id="weight" name="weight" value="70.0" required min="20" max="300" placeholder="e.g. 70.0">
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="gender">Gender</label>
-                        <select id="gender" name="gender" required>
-                            <option value="1" selected>Female</option>
-                            <option value="2">Male</option>
-                        </select>
+                    <div class="form-section-title">Blood Pressure &amp; Clinical Chemistry</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="ap_hi">
+                                Systolic BP (ap_hi) <span class="unit">(mmHg)</span>
+                            </label>
+                            <input type="number" id="ap_hi" name="ap_hi" value="140" required min="60" max="260" placeholder="e.g. 140">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ap_lo">
+                                Diastolic BP (ap_lo) <span class="unit">(mmHg)</span>
+                            </label>
+                            <input type="number" id="ap_lo" name="ap_lo" value="90" required min="40" max="180" placeholder="e.g. 90">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="cholesterol">
+                                Cholesterol Level <span class="unit">(Serum Total)</span>
+                            </label>
+                            <select id="cholesterol" name="cholesterol" required>
+                                <option value="1">Normal (&lt; 200 mg/dL)</option>
+                                <option value="2" selected>Above Normal (200–239 mg/dL)</option>
+                                <option value="3">Well Above Normal (≥ 240 mg/dL)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="gluc">
+                                Glucose Level <span class="unit">(Fasting Blood)</span>
+                            </label>
+                            <select id="gluc" name="gluc" required>
+                                <option value="1" selected>Normal (&lt; 100 mg/dL)</option>
+                                <option value="2">Above Normal (100–125 mg/dL)</option>
+                                <option value="3">Well Above Normal (≥ 126 mg/dL)</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="height">Height (cm)</label>
-                        <input type="number" step="0.1" id="height" name="height" value="165.0" required min="50" max="250">
+                    <div class="form-section-title">Lifestyle Factors</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="smoke">
+                                Smoking Status <span class="unit">(Tobacco)</span>
+                            </label>
+                            <select id="smoke" name="smoke" required>
+                                <option value="0" selected>Non-Smoker</option>
+                                <option value="1">Active Smoker</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="alco">
+                                Alcohol Intake <span class="unit">(Regular)</span>
+                            </label>
+                            <select id="alco" name="alco" required>
+                                <option value="0" selected>Non-Drinker</option>
+                                <option value="1">Regular Drinker</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="active">
+                                Physical Activity <span class="unit">(≥ 30 min/day)</span>
+                            </label>
+                            <select id="active" name="active" required>
+                                <option value="0">Physically Inactive</option>
+                                <option value="1" selected>Physically Active</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="weight">Weight (kg)</label>
-                        <input type="number" step="0.1" id="weight" name="weight" value="70.0" required min="20" max="300">
+                    <div class="action-container margin-top">
+                        <button type="submit" class="btn btn-primary" id="btn-submit">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            ANALYZE PATIENT
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- ==========================================
+                 SCREEN 3: ASSESSMENT RESULT (CLINICAL CDS)
+                 ========================================== -->
+            <section id="screen-result" class="screen" aria-labelledby="result-heading">
+                <div class="card result-card">
+                    <div class="result-title-section">
+                        <h2 id="result-heading">Cardiovascular Risk Assessment</h2>
+                        <div class="result-subtitle">AI-assisted clinical decision support for clinician review</div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="ap_hi">Systolic BP (ap_hi)</label>
-                        <input type="number" id="ap_hi" name="ap_hi" value="140" required min="50" max="250">
+                    <!-- Primary Risk Level & Confidence Display -->
+                    <div class="risk-primary-card risk-high" id="res-box">
+                        <div class="risk-tag" id="res-prediction">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span id="res-prediction-label">Elevated Potential Risk</span>
+                        </div>
+                        <div class="probability-metric" id="res-probability">73.88%</div>
+                        <div class="risk-metric-caption">Model Estimated Probability</div>
+                        <div class="inference-origin-badge" id="res-engine-tag">Engine: Local Standalone Neural Network</div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="ap_lo">Diastolic BP (ap_lo)</label>
-                        <input type="number" id="ap_lo" name="ap_lo" value="90" required min="30" max="180">
+                    <!-- Key Contributing Factors (Data-Driven) -->
+                    <div class="factors-section">
+                        <div class="section-label">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            Key Contributing Factors
+                        </div>
+                        <ul class="factors-list" id="factors-list">
+                            <!-- Populated dynamically by script.js -->
+                        </ul>
                     </div>
 
-                    <div class="form-group full-width">
-                        <label for="cholesterol">Cholesterol Level</label>
-                        <select id="cholesterol" name="cholesterol" required>
-                            <option value="1">Normal</option>
-                            <option value="2" selected>Above Normal</option>
-                            <option value="3">Well Above Normal</option>
-                        </select>
+                    <!-- Supporting Reasoning Box -->
+                    <div class="reasoning-box">
+                        <div class="reasoning-title">Supporting Clinical Reasoning</div>
+                        <div class="reasoning-text" id="reasoning-text">
+                            The assessment is influenced primarily by the patient's blood pressure, cholesterol level and activity status.
+                        </div>
                     </div>
 
-                    <div class="form-group full-width">
-                        <label for="gluc">Glucose Level</label>
-                        <select id="gluc" name="gluc" required>
-                            <option value="1" selected>Normal</option>
-                            <option value="2">Above Normal</option>
-                            <option value="3">Well Above Normal</option>
-                        </select>
+                    <!-- Derived Patient Metrics Grid -->
+                    <div>
+                        <div class="section-label">Patient Baseline Metrics</div>
+                        <div class="patient-summary-grid">
+                            <div class="summary-tile">
+                                <span class="summary-tile-label">Blood Pressure</span>
+                                <span class="summary-tile-value" id="summary-bp">140/90 mmHg</span>
+                            </div>
+                            <div class="summary-tile">
+                                <span class="summary-tile-label">BMI</span>
+                                <span class="summary-tile-value" id="summary-bmi">25.7 kg/m²</span>
+                            </div>
+                            <div class="summary-tile">
+                                <span class="summary-tile-label">Cholesterol</span>
+                                <span class="summary-tile-value" id="summary-cholesterol">Above Normal</span>
+                            </div>
+                            <div class="summary-tile">
+                                <span class="summary-tile-label">Glucose</span>
+                                <span class="summary-tile-value" id="summary-gluc">Normal</span>
+                            </div>
+                            <div class="summary-tile">
+                                <span class="summary-tile-label">Smoking</span>
+                                <span class="summary-tile-value" id="summary-smoking">Non-Smoker</span>
+                            </div>
+                            <div class="summary-tile">
+                                <span class="summary-tile-label">Physical Activity</span>
+                                <span class="summary-tile-value" id="summary-activity">Active</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="smoke">Smoking Status</label>
-                        <select id="smoke" name="smoke" required>
-                            <option value="0" selected>Non-Smoker</option>
-                            <option value="1">Smoker</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="alco">Alcohol Intake</label>
-                        <select id="alco" name="alco" required>
-                            <option value="0" selected>Non-Drinker</option>
-                            <option value="1">Drinker</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="active">Physical Activity</label>
-                        <select id="active" name="active" required>
-                            <option value="0">Physically Inactive</option>
-                            <option value="1" selected>Physically Active</option>
-                        </select>
+                    <!-- Prominent Clinical Disclaimer -->
+                    <div class="clinical-disclaimer" role="note">
+                        <div class="disclaimer-icon">⚠️</div>
+                        <div class="disclaimer-text">
+                            <strong>Clinical Disclaimer:</strong> AI-generated decision support. Final clinical assessment remains with the healthcare professional. This tool estimates statistical risk patterns from multicenter federated data and does not constitute a standalone definitive medical diagnosis.
+                        </div>
                     </div>
                 </div>
 
                 <div class="action-container margin-top">
-                    <button type="submit" class="btn btn-primary" id="btn-submit">Analyze Patient</button>
+                    <button class="btn btn-primary" onclick="showScreen('screen-assessment')" type="button">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        New Assessment
+                    </button>
+                    <button class="btn btn-secondary" onclick="showScreen('screen-home')" type="button">
+                        Dashboard
+                    </button>
                 </div>
-            </form>
-        </section>
+            </section>
 
-        <!-- SCREEN 3: RESULT -->
-        <section id="screen-result" class="screen">
-            <div class="card result-card">
-                <div class="result-header">
-                    <h2>Assessment Result</h2>
+            <!-- ==========================================
+                 SCREEN 4: FEDERATED LEARNING ARCHITECTURE
+                 ========================================== -->
+            <section id="screen-federated" class="screen" aria-labelledby="fl-heading">
+                <div class="screen-header">
+                    <div>
+                        <h2 id="fl-heading">Federated Learning Status</h2>
+                        <p>Decentralized model training across participating healthcare institutions</p>
+                    </div>
+                    <button class="btn-text" onclick="showScreen('screen-home')" type="button">Return</button>
                 </div>
 
-                <!-- Main Visual Focus: Estimated Risk & Probability -->
-                <div class="risk-primary-box risk-high" id="res-box">
-                    <div class="risk-status-tag" id="res-prediction">Elevated Risk</div>
-                    <div class="probability-display" id="res-probability">73.88%</div>
-                    <div class="risk-label">Estimated Risk</div>
-                </div>
+                <div class="card fl-diagram-card">
+                    <div class="section-label">Architecture &amp; Parameter Flow</div>
+                    
+                    <div class="fl-flow">
+                        <!-- Distributed Clinic Nodes -->
+                        <div class="fl-nodes-row">
+                            <div class="fl-node">
+                                <div class="fl-node-title">Clinic A</div>
+                                <div style="font-size: 0.76rem; color: var(--text-caption);">Older / Higher BP Cohort</div>
+                                <div><span class="fl-node-badge">Local Training</span></div>
+                            </div>
+                            <div class="fl-node">
+                                <div class="fl-node-title">Clinic B</div>
+                                <div style="font-size: 0.76rem; color: var(--text-caption);">Younger / Lower BP Cohort</div>
+                                <div><span class="fl-node-badge">Local Training</span></div>
+                            </div>
+                            <div class="fl-node">
+                                <div class="fl-node-title">Clinic C</div>
+                                <div style="font-size: 0.76rem; color: var(--text-caption);">Mixed Population Cohort</div>
+                                <div><span class="fl-node-badge">Local Training</span></div>
+                            </div>
+                        </div>
 
-                <!-- Derived Patient Summary Factors -->
-                <div class="patient-summary-section">
-                    <div class="summary-section-title">Patient Summary</div>
-                    <div class="summary-grid">
-                        <div class="summary-item">
-                            <span class="summary-label">Blood Pressure</span>
-                            <span class="summary-value" id="summary-bp">140/90 mmHg</span>
+                        <!-- Parameter Flow Arrow Down -->
+                        <div class="fl-arrow-down">
+                            <svg viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                            <span>Model Weights &amp; Gradients Only (Encrypted)</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">BMI</span>
-                            <span class="summary-value" id="summary-bmi">25.7 kg/m²</span>
+
+                        <!-- Central Federated Server -->
+                        <div class="fl-central-hub">
+                            <div class="fl-hub-title">Federated Aggregation Server</div>
+                            <div class="fl-hub-subtitle">Weighted Federated Averaging (FedAvg) • 5 Training Rounds</div>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Cholesterol</span>
-                            <span class="summary-value" id="summary-cholesterol">Above Normal</span>
+
+                        <!-- Global Model Distribution Arrow -->
+                        <div class="fl-arrow-down">
+                            <svg viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                            <span>Global Consensus Model Parameters Broadcast</span>
                         </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Physical Activity</span>
-                            <span class="summary-value" id="summary-activity">Active</span>
+
+                        <!-- Local Deployed Engine -->
+                        <div class="fl-nodes-row">
+                            <div class="fl-node" style="border-color: #059669; grid-column: span 3;">
+                                <div class="fl-node-title" style="color: #065F46;">Local CardioSense Engine</div>
+                                <div style="font-size: 0.82rem; color: #047857;">Zero-latency offline inference with validated mathematical parity</div>
+                            </div>
                         </div>
-                        <div class="summary-item full-width-item">
-                            <span class="summary-label">Smoking Status</span>
-                            <span class="summary-value" id="summary-smoking">Non-Smoker</span>
+                    </div>
+
+                    <!-- Privacy Guarantee Card -->
+                    <div class="fl-privacy-guarantee">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <div>
+                            <div class="fl-privacy-title">Data Privacy &amp; Protection Guarantee</div>
+                            <div class="fl-privacy-body">
+                                <strong>Raw patient data remains strictly within the originating clinic.</strong> Patient health records and identifiers never leave on-premise infrastructure. Only decentralized neural network parameter weights are shared during federated synchronization rounds.
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="action-container margin-top">
-                <button class="btn btn-primary" onclick="showScreen('screen-assessment')">New Assessment</button>
-            </div>
-        </section>
-    </div>
+                <div class="action-container">
+                    <button class="btn btn-primary" onclick="showScreen('screen-assessment')" type="button">
+                        Start Patient Assessment
+                    </button>
+                </div>
+            </section>
+
+        </div>
+    </main>
 
     <script src="script.js"></script>
 </body>

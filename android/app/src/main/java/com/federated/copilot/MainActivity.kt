@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var spinnerMode: Spinner
     private lateinit var tvHeaderStatus: TextView
+    private lateinit var tvModeDescription: TextView
 
     // Input Views
     private lateinit var etAge: EditText
@@ -43,6 +44,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cardRiskPrimary: LinearLayout
     private lateinit var tvRiskTag: TextView
     private lateinit var tvProbability: TextView
+    private lateinit var tvEngineTag: TextView
+    private lateinit var tvContributingFactors: TextView
+    private lateinit var tvClinicalReasoning: TextView
     private lateinit var tvResBp: TextView
     private lateinit var tvResBmi: TextView
     private lateinit var tvResCholesterol: TextView
@@ -70,6 +74,7 @@ class MainActivity : AppCompatActivity() {
         screenResult = findViewById(R.id.screen_result)
 
         tvHeaderStatus = findViewById(R.id.tv_header_status)
+        tvModeDescription = findViewById(R.id.tv_mode_description)
         spinnerMode = findViewById(R.id.spinner_inference_mode)
 
         etAge = findViewById(R.id.et_age)
@@ -88,6 +93,9 @@ class MainActivity : AppCompatActivity() {
         cardRiskPrimary = findViewById(R.id.card_risk_primary)
         tvRiskTag = findViewById(R.id.tv_risk_tag)
         tvProbability = findViewById(R.id.tv_probability)
+        tvEngineTag = findViewById(R.id.tv_engine_tag)
+        tvContributingFactors = findViewById(R.id.tv_contributing_factors)
+        tvClinicalReasoning = findViewById(R.id.tv_clinical_reasoning)
 
         tvResBp = findViewById(R.id.tv_res_bp)
         tvResBmi = findViewById(R.id.tv_res_bmi)
@@ -122,19 +130,21 @@ class MainActivity : AppCompatActivity() {
                 if (position == 1) {
                     tvHeaderStatus.text = "Online Mode"
                     tvHeaderStatus.setBackgroundColor(Color.parseColor("#10B981"))
+                    tvModeDescription.text = "Connected to central FastAPI server for remote inference verification and federated parameter synchronization."
                 } else {
-                    tvHeaderStatus.text = "Offline Mode"
+                    tvHeaderStatus.text = "Offline Mode (Local)"
                     tvHeaderStatus.setBackgroundColor(Color.parseColor("#2563EB"))
+                    tvModeDescription.text = "Local engine active. Standalone neural network computes risk predictions on-device with 0ms network latency."
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
         spinnerGender.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Female", "Male"))
-        spinnerCholesterol.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Normal", "Above Normal", "Well Above Normal"))
-        spinnerGlucose.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Normal", "Above Normal", "Well Above Normal"))
-        spinnerSmoke.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Non-Smoker", "Smoker"))
-        spinnerAlco.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Non-Drinker", "Drinker"))
+        spinnerCholesterol.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Normal (< 200 mg/dL)", "Above Normal (200-239 mg/dL)", "Well Above Normal (≥ 240 mg/dL)"))
+        spinnerGlucose.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Normal (< 100 mg/dL)", "Above Normal (100-125 mg/dL)", "Well Above Normal (≥ 126 mg/dL)"))
+        spinnerSmoke.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Non-Smoker", "Active Smoker"))
+        spinnerAlco.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Non-Drinker", "Regular Drinker"))
         spinnerActive.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Physically Inactive", "Physically Active"))
 
         // Set default selections matching standard test sample
@@ -171,6 +181,11 @@ class MainActivity : AppCompatActivity() {
         val weight = etWeight.text.toString().toDoubleOrNull() ?: 70.0
         val apHi = etApHi.text.toString().toIntOrNull() ?: 140
         val apLo = etApLo.text.toString().toIntOrNull() ?: 90
+
+        if (apLo >= apHi) {
+            Toast.makeText(this, "Systolic BP must be strictly greater than Diastolic BP", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         val gender = spinnerGender.selectedItemPosition + 1
         val cholesterol = spinnerCholesterol.selectedItemPosition + 1
@@ -251,7 +266,7 @@ class MainActivity : AppCompatActivity() {
             val prob = 1.0 / (1.0 + exp(-logit))
             val predClass = if (prob >= 0.5) 1 else 0
 
-            renderResult(predClass, prob, apHi, apLo, height, weight, cholesterol, active, smoke)
+            renderResult(predClass, prob, apHi, apLo, height, weight, cholesterol, glucose, active, smoke, age, "Local Standalone Neural Network (Offline)")
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -302,7 +317,7 @@ class MainActivity : AppCompatActivity() {
                     val prob = resObj.getDouble("probability")
 
                     mainHandler.post {
-                        renderResult(predClass, prob, apHi, apLo, height, weight, cholesterol, active, smoke)
+                        renderResult(predClass, prob, apHi, apLo, height, weight, cholesterol, glucose, active, smoke, age, "FastAPI REST Server (Online)")
                     }
                 } else {
                     mainHandler.post {
@@ -322,15 +337,16 @@ class MainActivity : AppCompatActivity() {
     private fun renderResult(
         predClass: Int, prob: Double,
         apHi: Int, apLo: Int, height: Double, weight: Double,
-        cholesterol: Int, active: Int, smoke: Int
+        cholesterol: Int, glucose: Int, active: Int, smoke: Int, age: Double,
+        engineOrigin: String
     ) {
         if (predClass == 1) {
-            tvRiskTag.text = "ELEVATED RISK"
+            tvRiskTag.text = "ELEVATED POTENTIAL RISK"
             tvRiskTag.setTextColor(Color.parseColor("#991B1B"))
             tvRiskTag.setBackgroundColor(Color.parseColor("#FEE2E2"))
             cardRiskPrimary.setBackgroundColor(Color.parseColor("#FEF2F2"))
         } else {
-            tvRiskTag.text = "LOWER RISK"
+            tvRiskTag.text = "LOWER POTENTIAL RISK"
             tvRiskTag.setTextColor(Color.parseColor("#065F46"))
             tvRiskTag.setBackgroundColor(Color.parseColor("#D1FAE5"))
             cardRiskPrimary.setBackgroundColor(Color.parseColor("#ECFDF5"))
@@ -338,18 +354,76 @@ class MainActivity : AppCompatActivity() {
 
         val pct = String.format("%.2f%%", prob * 100)
         tvProbability.text = pct
+        tvEngineTag.text = "Engine: $engineOrigin"
 
         tvResBp.text = "$apHi/$apLo mmHg"
         
         val heightM = height / 100.0
-        val bmi = if (heightM > 0) String.format("%.1f kg/m²", weight / (heightM * heightM)) else "N/A"
-        tvResBmi.text = bmi
+        val bmi = if (heightM > 0) weight / (heightM * heightM) else 22.0
+        tvResBmi.text = String.format("%.1f kg/m²", bmi)
 
-        val cholMap = arrayOf("Normal", "Above Normal", "Well Above Normal")
+        val cholMap = arrayOf("Normal (< 200 mg/dL)", "Above Normal (200-239 mg/dL)", "Well Above Normal (≥ 240 mg/dL)")
         tvResCholesterol.text = cholMap.getOrElse(cholesterol - 1) { "Normal" }
 
-        tvResActivity.text = if (active == 1) "Active" else "Inactive"
-        tvResSmoking.text = if (smoke == 1) "Smoker" else "Non-Smoker"
+        tvResActivity.text = if (active == 1) "Active (≥ 30 min/day)" else "Inactive"
+        tvResSmoking.text = if (smoke == 1) "Active Smoker" else "Non-Smoker"
+
+        // Build Contributing Factors & Clinical Reasoning
+        val factors = mutableListOf<String>()
+        val aspects = mutableListOf<String>()
+
+        if (apHi >= 140 || apLo >= 90) {
+            factors.add("• Elevated Blood Pressure: $apHi/$apLo mmHg (Hypertension range)")
+            aspects.add("blood pressure")
+        } else if (apHi >= 130 || apLo >= 80) {
+            factors.add("• Prehypertension Blood Pressure: $apHi/$apLo mmHg")
+            aspects.add("borderline blood pressure")
+        }
+
+        if (cholesterol >= 2) {
+            factors.add("• Above-normal serum cholesterol (Level $cholesterol)")
+            aspects.add("cholesterol level")
+        }
+
+        if (glucose >= 2) {
+            factors.add("• Elevated fasting blood glucose (Level $glucose)")
+            aspects.add("blood glucose")
+        }
+
+        if (active == 0) {
+            factors.add("• Physical inactivity reported (< 30 min/day)")
+            aspects.add("physical inactivity")
+        }
+
+        if (smoke == 1) {
+            factors.add("• Active tobacco smoker status")
+            aspects.add("smoking status")
+        }
+
+        if (bmi >= 25.0) {
+            factors.add(String.format("• Elevated Body Mass Index: %.1f kg/m²", bmi))
+            aspects.add("body mass index")
+        }
+
+        if (age >= 55.0) {
+            factors.add(String.format("• Age demographic factor: %.1f years", age))
+            aspects.add("age factor")
+        }
+
+        if (factors.isEmpty()) {
+            factors.add("• Optimal baseline blood pressure reading")
+            factors.add("• Normal lipid and glucose profile")
+            factors.add("• Active lifestyle factors")
+        }
+
+        tvContributingFactors.text = factors.joinToString("\n")
+
+        if (predClass == 1 && aspects.isNotEmpty()) {
+            val aspectStr = aspects.distinct().joinToString(", ")
+            tvClinicalReasoning.text = "The assessment is influenced primarily by the patient's $aspectStr. AI decision support indicates statistical correlation with potential cardiovascular risk patterns derived from multicenter federated hospital cohorts."
+        } else {
+            tvClinicalReasoning.text = "The assessment indicates optimal alignment across primary vascular metrics (blood pressure, lipid profile, and activity levels), resulting in a lower potential cardiovascular risk estimation."
+        }
 
         showScreen(screenResult)
     }

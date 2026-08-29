@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">Diagnostic Co-Pilot</string>
-    <string name="title_home">Federated Diagnostic Co-Pilot</string>
-    <string name="subtitle_home">Clinical Decision Support System</string>
+    <string name="app_name">CardioSense</string>
+    <string name="title_home">CardioSense Diagnostic Co-Pilot</string>
+    <string name="subtitle_home">Cardiovascular Clinical Decision Support</string>
     <string name="status_operational">Global Model: Operational</string>
     <string name="rounds_count">Federated Rounds: 5</string>
     <string name="clinics_count">Clinics: 3</string>
