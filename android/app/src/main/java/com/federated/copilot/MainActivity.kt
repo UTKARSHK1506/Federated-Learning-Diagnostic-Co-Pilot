@@ -44,7 +44,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cardRiskPrimary: LinearLayout
     private lateinit var tvRiskTag: TextView
     private lateinit var tvProbability: TextView
-    private lateinit var tvEngineTag: TextView
     private lateinit var tvContributingFactors: TextView
     private lateinit var tvClinicalReasoning: TextView
     private lateinit var tvResBp: TextView
@@ -93,7 +92,6 @@ class MainActivity : AppCompatActivity() {
         cardRiskPrimary = findViewById(R.id.card_risk_primary)
         tvRiskTag = findViewById(R.id.tv_risk_tag)
         tvProbability = findViewById(R.id.tv_probability)
-        tvEngineTag = findViewById(R.id.tv_engine_tag)
         tvContributingFactors = findViewById(R.id.tv_contributing_factors)
         tvClinicalReasoning = findViewById(R.id.tv_clinical_reasoning)
 
@@ -120,10 +118,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun createCustomAdapter(items: Array<String>): ArrayAdapter<String> {
+        return ArrayAdapter(this, R.layout.spinner_item, items).apply {
+            setDropDownViewResource(R.layout.spinner_dropdown_item)
+        }
+    }
+
     private fun setupSpinners() {
         val modeOptions = arrayOf("Offline Mode (Local)", "Online Mode (FastAPI)")
-        val modeAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, modeOptions)
-        spinnerMode.adapter = modeAdapter
+        spinnerMode.adapter = createCustomAdapter(modeOptions)
 
         spinnerMode.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -140,12 +143,12 @@ class MainActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        spinnerGender.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Female", "Male"))
-        spinnerCholesterol.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Normal (< 200 mg/dL)", "Above Normal (200-239 mg/dL)", "Well Above Normal (≥ 240 mg/dL)"))
-        spinnerGlucose.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Normal (< 100 mg/dL)", "Above Normal (100-125 mg/dL)", "Well Above Normal (≥ 126 mg/dL)"))
-        spinnerSmoke.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Non-Smoker", "Active Smoker"))
-        spinnerAlco.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Non-Drinker", "Regular Drinker"))
-        spinnerActive.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Physically Inactive", "Physically Active"))
+        spinnerGender.adapter = createCustomAdapter(arrayOf("Female", "Male"))
+        spinnerCholesterol.adapter = createCustomAdapter(arrayOf("Normal (< 200 mg/dL)", "Above Normal (200-239 mg/dL)", "Well Above Normal (≥ 240 mg/dL)"))
+        spinnerGlucose.adapter = createCustomAdapter(arrayOf("Normal (< 100 mg/dL)", "Above Normal (100-125 mg/dL)", "Well Above Normal (≥ 126 mg/dL)"))
+        spinnerSmoke.adapter = createCustomAdapter(arrayOf("Non-Smoker", "Active Smoker"))
+        spinnerAlco.adapter = createCustomAdapter(arrayOf("Non-Drinker", "Regular Drinker"))
+        spinnerActive.adapter = createCustomAdapter(arrayOf("Physically Inactive", "Physically Active"))
 
         // Set default selections matching standard test sample
         spinnerCholesterol.setSelection(1) // Above Normal
@@ -266,7 +269,7 @@ class MainActivity : AppCompatActivity() {
             val prob = 1.0 / (1.0 + exp(-logit))
             val predClass = if (prob >= 0.5) 1 else 0
 
-            renderResult(predClass, prob, apHi, apLo, height, weight, cholesterol, glucose, active, smoke, age, "Local Standalone Neural Network (Offline)")
+            renderResult(predClass, prob, apHi, apLo, height, weight, cholesterol, glucose, active, smoke, age)
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -295,7 +298,6 @@ class MainActivity : AppCompatActivity() {
 
         executor.execute {
             try {
-                // Try Android Emulator host mapping first, fallback to localhost
                 val url = URL("http://10.0.2.2:8000/predict")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "POST"
@@ -317,7 +319,7 @@ class MainActivity : AppCompatActivity() {
                     val prob = resObj.getDouble("probability")
 
                     mainHandler.post {
-                        renderResult(predClass, prob, apHi, apLo, height, weight, cholesterol, glucose, active, smoke, age, "FastAPI REST Server (Online)")
+                        renderResult(predClass, prob, apHi, apLo, height, weight, cholesterol, glucose, active, smoke, age)
                     }
                 } else {
                     mainHandler.post {
@@ -337,8 +339,7 @@ class MainActivity : AppCompatActivity() {
     private fun renderResult(
         predClass: Int, prob: Double,
         apHi: Int, apLo: Int, height: Double, weight: Double,
-        cholesterol: Int, glucose: Int, active: Int, smoke: Int, age: Double,
-        engineOrigin: String
+        cholesterol: Int, glucose: Int, active: Int, smoke: Int, age: Double
     ) {
         if (predClass == 1) {
             tvRiskTag.text = "ELEVATED POTENTIAL RISK"
@@ -354,7 +355,6 @@ class MainActivity : AppCompatActivity() {
 
         val pct = String.format("%.2f%%", prob * 100)
         tvProbability.text = pct
-        tvEngineTag.text = "Engine: $engineOrigin"
 
         tvResBp.text = "$apHi/$apLo mmHg"
         
@@ -420,7 +420,7 @@ class MainActivity : AppCompatActivity() {
 
         if (predClass == 1 && aspects.isNotEmpty()) {
             val aspectStr = aspects.distinct().joinToString(", ")
-            tvClinicalReasoning.text = "The assessment is influenced primarily by the patient's $aspectStr. AI decision support indicates statistical correlation with potential cardiovascular risk patterns derived from multicenter federated hospital cohorts."
+            tvClinicalReasoning.text = "The assessment is influenced primarily by the patient's $aspectStr. Decision support indicates statistical correlation with potential cardiovascular risk patterns derived from multicenter federated hospital cohorts."
         } else {
             tvClinicalReasoning.text = "The assessment indicates optimal alignment across primary vascular metrics (blood pressure, lipid profile, and activity levels), resulting in a lower potential cardiovascular risk estimation."
         }
