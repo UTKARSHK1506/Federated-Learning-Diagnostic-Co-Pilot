@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federated Diagnostic Co-Pilot</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="mobile-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-title">Clinical Co-Pilot</div>
+            <div class="header-status" id="header-status">
+                <span class="status-dot"></span> System Connected
+            </div>
+        </header>
+
+        <!-- SCREEN 1: HOME / DASHBOARD -->
+        <section id="screen-home" class="screen active">
+            <div class="card main-title-card">
+                <h1>Federated Diagnostic Co-Pilot</h1>
+                <p class="subtitle">Clinical Decision Support Prototype</p>
+            </div>
+
+            <div class="card status-card">
+                <div class="status-row">
+                    <span class="label">Global Model Status:</span>
+                    <span class="value badge-success" id="model-status-text">Operational</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Federated Rounds:</span>
+                    <span class="value" id="rounds-text">5</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Participating Clinics:</span>
+                    <span class="value" id="clinics-text">3</span>
+                </div>
+            </div>
+
+            <div class="action-container">
+                <button class="btn btn-primary" onclick="showScreen('screen-assessment')">Patient Assessment</button>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: PATIENT ASSESSMENT -->
+        <section id="screen-assessment" class="screen">
+            <div class="screen-header">
+                <h2>Patient Assessment</h2>
+                <button class="btn-text" onclick="showScreen('screen-home')">Cancel</button>
+            </div>
+
+            <form id="assessment-form" onsubmit="handleAssessmentSubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="age">Age (Years)</label>
+                        <input type="number" step="0.1" id="age" name="age" value="55.5" required min="1" max="120">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            <option value="1" selected>Female</option>
+                            <option value="2">Male</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="height">Height (cm)</label>
+                        <input type="number" step="0.1" id="height" name="height" value="165.0" required min="50" max="250">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="weight">Weight (kg)</label>
+                        <input type="number" step="0.1" id="weight" name="weight" value="70.0" required min="20" max="300">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ap_hi">Systolic BP (ap_hi)</label>
+                        <input type="number" id="ap_hi" name="ap_hi" value="140" required min="50" max="250">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ap_lo">Diastolic BP (ap_lo)</label>
+                        <input type="number" id="ap_lo" name="ap_lo" value="90" required min="30" max="180">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="cholesterol">Cholesterol Level</label>
+                        <select id="cholesterol" name="cholesterol" required>
+                            <option value="1">1: Normal</option>
+                            <option value="2" selected>2: Above Normal</option>
+                            <option value="3">3: Well Above Normal</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="gluc">Glucose Level</label>
+                        <select id="gluc" name="gluc" required>
+                            <option value="1" selected>1: Normal</option>
+                            <option value="2">2: Above Normal</option>
+                            <option value="3">3: Well Above Normal</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="smoke">Smoking Status</label>
+                        <select id="smoke" name="smoke" required>
+                            <option value="0" selected>Non-Smoker</option>
+                            <option value="1">Smoker</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="alco">Alcohol Intake</label>
+                        <select id="alco" name="alco" required>
+                            <option value="0" selected>Non-Drinker</option>
+                            <option value="1">Drinker</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="active">Physical Activity</label>
+                        <select id="active" name="active" required>
+                            <option value="0">Physically Inactive</option>
+                            <option value="1" selected>Physically Active</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-container margin-top">
+                    <button type="submit" class="btn btn-primary" id="btn-submit">Analyze Patient</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- SCREEN 3: RESULT -->
+        <section id="screen-result" class="screen">
+            <div class="card result-card">
+                <h2>Assessment Result</h2>
+                
+                <div class="prediction-box risk-high" id="res-box">
+                    <div class="prediction-title" id="res-prediction">Cardiovascular Risk Detected</div>
+                </div>
+
+                <div class="result-metric-row">
+                    <span class="metric-label">Probability:</span>
+                    <span class="metric-value highlight" id="res-probability">73.88%</span>
+                </div>
+
+                <div class="result-metric-row">
+                    <span class="metric-label">Model:</span>
+                    <span class="metric-value" id="res-model">Federated FNN</span>
+                </div>
+            </div>
+
+            <div class="action-container margin-top">
+                <button class="btn btn-secondary" onclick="showScreen('screen-assessment')">New Assessment</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

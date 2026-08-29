@@ -20,22 +20,35 @@ Technical record of verified values, hyperparameter configurations, and empirica
 * **Training Loss**: `BCEWithLogitsLoss`
 * **Optimizer**: Adam ($\text{lr} = 0.001$)
 * **Batch Size**: 64
-* **Epochs**: 20
+* **Local Epochs per Round**: 1
+* **Federated Rounds**: 5
+* **Aggregation Strategy**: Weighted Federated Averaging (FedAvg) via Flower (`flwr`)
 * **Random Seed**: 42
 
 ---
 
-## Baseline Verification Results (Clinic A Local Training)
+## Baseline Verification & Federated Results
+
+### Local Training Baseline (Clinic A Only, 20 Epochs)
 
 | Metric | Verified Value |
 | :--- | :--- |
-| **Training Loss Trajectory** | Monotonically decreased from `0.5745` (Epoch 1) → `0.5400` (Epoch 20) |
 | **Test Loss** | `0.5584` |
 | **Test Accuracy** | **72.04%** |
-| **Precision** | **0.7491** |
-| **Recall** | **0.7849** |
-| **F1 Score** | **0.7666** |
-| **Parameter Updates Verified** | **YES** (Confirmed weight & bias tensor modifications via `state_dict()` comparison) |
+| **Precision** | `0.7491` |
+| **Recall** | `0.7849` |
+| **F1 Score** | `0.7666` |
+| **Parameter Updates Verified** | **YES** |
+
+### Final Global Federated Model Results (3 Clients, 5 FedAvg Rounds)
+
+| Evaluation Test Set | Test Loss | Test Accuracy | Precision | Recall | F1 Score |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Clinic A Test Set** | `0.5799` | **70.51%** | `0.7948` | `0.6684` | `0.7262` |
+| **Clinic B Test Set** | `0.5626` | **71.82%** | `0.6421` | `0.6736` | `0.6575` |
+| **Clinic C Test Set** | `0.5419` | **73.70%** | `0.7498` | `0.7076` | `0.7281` |
+
+*Privacy Guarantee Verification*: Parameter arrays (weights & biases) were exchanged; 0 raw patient records were transmitted to the server.
 
 ---
 
@@ -46,4 +59,4 @@ Technical record of verified values, hyperparameter configurations, and empirica
 3. Preprocessing pipeline — **DONE**
 4. FNN architecture — **DONE**
 5. Local training — **DONE**
-6. Federated Learning — **NOT STARTED**
+6. Federated Learning — **DONE**
