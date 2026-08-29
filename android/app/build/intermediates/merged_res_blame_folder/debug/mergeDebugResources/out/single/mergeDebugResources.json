@@ -1,5 +1,33 @@
 [
     {
+        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\drawable_bg_input.xml.flat",
+        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_input.xml"
+    },
+    {
+        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\drawable_bg_spinner.xml.flat",
+        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_spinner.xml"
+    },
+    {
+        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\drawable_bg_disclaimer.xml.flat",
+        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_disclaimer.xml"
+    },
+    {
+        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\drawable_bg_scale_inactive.xml.flat",
+        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_scale_inactive.xml"
+    },
+    {
+        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\drawable_bg_scale_active.xml.flat",
+        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_scale_active.xml"
+    },
+    {
+        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\layout_spinner_item.xml.flat",
+        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\layout\\spinner_item.xml"
+    },
+    {
+        "merged": "com.federated.copilot.app-debug-31:/layout_activity_main.xml.flat",
+        "source": "com.federated.copilot.app-main-33:/layout/activity_main.xml"
+    },
+    {
         "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\drawable_bg_card_info.xml.flat",
         "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_card_info.xml"
     },
@@ -8,36 +36,16 @@
         "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_card.xml"
     },
     {
-        "merged": "com.federated.copilot.app-debug-31:/layout_spinner_dropdown_item.xml.flat",
-        "source": "com.federated.copilot.app-main-33:/layout/spinner_dropdown_item.xml"
-    },
-    {
-        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\drawable_bg_input.xml.flat",
-        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_input.xml"
+        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\drawable_bg_button_secondary.xml.flat",
+        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_button_secondary.xml"
     },
     {
         "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\layout_spinner_dropdown_item.xml.flat",
         "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\layout\\spinner_dropdown_item.xml"
     },
     {
-        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\drawable_bg_disclaimer.xml.flat",
-        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\drawable\\bg_disclaimer.xml"
-    },
-    {
-        "merged": "com.federated.copilot.app-debug-31:/layout_spinner_item.xml.flat",
-        "source": "com.federated.copilot.app-main-33:/layout/spinner_item.xml"
-    },
-    {
-        "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\layout_spinner_item.xml.flat",
-        "source": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-main-33:\\layout\\spinner_item.xml"
-    },
-    {
-        "merged": "com.federated.copilot.app-debug-31:/drawable_bg_spinner.xml.flat",
-        "source": "com.federated.copilot.app-main-33:/drawable/bg_spinner.xml"
-    },
-    {
-        "merged": "com.federated.copilot.app-debug-31:/layout_activity_main.xml.flat",
-        "source": "com.federated.copilot.app-main-33:/layout/activity_main.xml"
+        "merged": "com.federated.copilot.app-debug-31:/drawable_ic_heart_pulse.xml.flat",
+        "source": "com.federated.copilot.app-main-33:/drawable/ic_heart_pulse.xml"
     },
     {
         "merged": "C:\\Users\\utkar\\.gradle\\daemon\\8.13\\com.federated.copilot.app-debug-31:\\layout_activity_main.xml.flat",

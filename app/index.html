@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#1E3A8A">
     <title>CardioSense - Cardiovascular Decision Support</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
     <main class="app-shell">
@@ -39,10 +39,6 @@
             <button class="nav-tab" id="tab-assessment" onclick="showScreen('screen-assessment')" type="button">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 <span>Assessment</span>
-            </button>
-            <button class="nav-tab" id="tab-federated" onclick="showScreen('screen-federated')" type="button">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                <span>Federated</span>
             </button>
         </nav>
 
@@ -351,86 +347,7 @@
                 </div>
             </section>
 
-            <!-- ==========================================
-                 SCREEN 4: FEDERATED LEARNING ARCHITECTURE
-                 ========================================== -->
-            <section id="screen-federated" class="screen" aria-labelledby="fl-heading">
-                <div class="screen-header">
-                    <div>
-                        <h2 id="fl-heading">Federated Learning Status</h2>
-                        <p>Decentralized model training across participating healthcare institutions</p>
-                    </div>
-                    <button class="btn-text" onclick="showScreen('screen-home')" type="button">Return</button>
-                </div>
 
-                <div class="card fl-diagram-card">
-                    <div class="section-label">Architecture &amp; Parameter Flow</div>
-                    
-                    <div class="fl-flow">
-                        <!-- Distributed Clinic Nodes -->
-                        <div class="fl-nodes-row">
-                            <div class="fl-node">
-                                <div class="fl-node-title">Clinic A</div>
-                                <div style="font-size: 0.76rem; color: var(--text-caption);">Older / Higher BP Cohort</div>
-                                <div><span class="fl-node-badge">Local Training</span></div>
-                            </div>
-                            <div class="fl-node">
-                                <div class="fl-node-title">Clinic B</div>
-                                <div style="font-size: 0.76rem; color: var(--text-caption);">Younger / Lower BP Cohort</div>
-                                <div><span class="fl-node-badge">Local Training</span></div>
-                            </div>
-                            <div class="fl-node">
-                                <div class="fl-node-title">Clinic C</div>
-                                <div style="font-size: 0.76rem; color: var(--text-caption);">Mixed Population Cohort</div>
-                                <div><span class="fl-node-badge">Local Training</span></div>
-                            </div>
-                        </div>
-
-                        <!-- Parameter Flow Arrow Down -->
-                        <div class="fl-arrow-down">
-                            <svg viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
-                            <span>Model Weights &amp; Gradients Only (Encrypted)</span>
-                        </div>
-
-                        <!-- Central Federated Server -->
-                        <div class="fl-central-hub">
-                            <div class="fl-hub-title">Federated Aggregation Server</div>
-                            <div class="fl-hub-subtitle">Weighted Federated Averaging (FedAvg) • 5 Training Rounds</div>
-                        </div>
-
-                        <!-- Global Model Distribution Arrow -->
-                        <div class="fl-arrow-down">
-                            <svg viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
-                            <span>Global Consensus Model Parameters Broadcast</span>
-                        </div>
-
-                        <!-- Local Deployed Engine -->
-                        <div class="fl-nodes-row">
-                            <div class="fl-node" style="border-color: #059669; grid-column: span 3;">
-                                <div class="fl-node-title" style="color: #065F46;">Local CardioSense Engine</div>
-                                <div style="font-size: 0.82rem; color: #047857;">Zero-latency offline inference with validated mathematical parity</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Privacy Guarantee Card -->
-                    <div class="fl-privacy-guarantee">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        <div>
-                            <div class="fl-privacy-title">Data Privacy &amp; Protection Guarantee</div>
-                            <div class="fl-privacy-body">
-                                <strong>Raw patient data remains strictly within the originating clinic.</strong> Patient health records and identifiers never leave on-premise infrastructure. Only decentralized neural network parameter weights are shared during federated synchronization rounds.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="action-container">
-                    <button class="btn btn-primary" onclick="showScreen('screen-assessment')" type="button">
-                        Start Patient Assessment
-                    </button>
-                </div>
-            </section>
 
         </div>
     </main>

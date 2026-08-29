@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F1F5F9">
+    android:background="#F8FAFC">
 
-    <!-- Top Hospital App Header -->
+    <!-- Top Navigation Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -32,12 +33,13 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cardiovascular Decision Support"
+                android:text="Cardiovascular Risk Assessment"
                 android:textColor="#BFDBFE"
                 android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- Status Indicator Pill -->
         <TextView
             android:id="@+id/tv_header_status"
             android:layout_width="wrap_content"
@@ -45,13 +47,13 @@
             android:background="#2563EB"
             android:paddingHorizontal="12dp"
             android:paddingVertical="6dp"
-            android:text="Offline Mode (Local)"
+            android:text="[ Offline ]"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Main Scrollable Container For Screens -->
+    <!-- Main Scrollable Container -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -63,252 +65,189 @@
             android:layout_height="wrap_content"
             android:padding="16dp">
 
-            <!-- ================= SCREEN 1: HOME / DASHBOARD ================= -->
+            <!-- ================= SCREEN 1: LANDING PAGE ================= -->
             <LinearLayout
                 android:id="@+id/screen_home"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
+                android:gravity="center_horizontal"
                 android:visibility="visible">
 
-                <!-- Title Card -->
+                <!-- Header / Branding -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card"
                     android:orientation="vertical"
-                    android:padding="18dp"
-                    android:layout_marginBottom="14dp">
+                    android:gravity="center"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="8dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="CardioSense Diagnostic Co-Pilot"
+                        android:text="CardioSense"
                         android:textColor="#1E3A8A"
-                        android:textSize="19sp"
+                        android:textSize="22sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Decision Support System"
-                        android:textColor="#2563EB"
-                        android:textSize="14sp"
+                        android:text="Cardiovascular Risk Assessment"
+                        android:textColor="#64748B"
+                        android:textSize="13sp"
                         android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Central Medical Illustration (Heart + ECG) -->
+                <ImageView
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="14dp"
+                    android:src="@drawable/ic_heart_pulse"
+                    android:contentDescription="Cardiovascular Health Illustration" />
+
+                <!-- Main Hero Text -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Welcome to CardioSense"
+                    android:textColor="#0F172A"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="20dp"
+                    android:text="Understand your cardiovascular risk with a simple health assessment."
+                    android:textColor="#475569"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:paddingHorizontal="16dp"
+                    android:lineSpacingExtra="2dp" />
+
+                <!-- Key Value Card -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_info"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="24dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="Cardiovascular clinical decision support with local AI inference."
+                        android:text="Simple. Private. Accessible."
+                        android:textColor="#1E3A8A"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="• Quick health assessment"
                         android:textColor="#334155"
                         android:textSize="13sp"
-                        android:lineSpacingExtra="2dp" />
-                </LinearLayout>
-
-                <!-- Inference Mode Card -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card_info"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:layout_marginBottom="14dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Inference Mode:"
-                            android:textColor="#1E3A8A"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
-
-                        <Spinner
-                            android:id="@+id/spinner_inference_mode"
-                            android:layout_width="wrap_content"
-                            android:layout_height="48dp"
-                            android:gravity="center_vertical"
-                            android:background="@drawable/bg_spinner" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tv_mode_description"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Local engine active. Standalone neural network computes risk predictions on-device with 0ms network latency."
-                        android:textColor="#475569"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <!-- System Overview Card -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:layout_marginBottom="14dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="SYSTEM OVERVIEW"
-                        android:textColor="#1E3A8A"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="10dp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="10dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="System Status:"
-                            android:textColor="#475569"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tv_system_status"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="#D1FAE5"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="3dp"
-                            android:text="Operational"
-                            android:textColor="#065F46"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="10dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Rounds Completed:"
-                            android:textColor="#475569"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="5"
-                            android:textColor="#0F172A"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="10dp">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Participating Sites:"
-                            android:textColor="#475569"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="3 (Clinic A, B, C)"
-                            android:textColor="#0F172A"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Local Patient Data:"
-                            android:textColor="#475569"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="#F0FDF4"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="3dp"
-                            android:text="Protected"
-                            android:textColor="#166534"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Offline Info Card -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card_info"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:layout_marginBottom="20dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Offline-First Clinical Architecture"
-                        android:textColor="#1E3A8A"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
                         android:layout_marginBottom="4dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Analysis is performed locally on-device. Model updates synchronize when connectivity is available."
+                        android:text="• Works without internet"
                         android:textColor="#334155"
-                        android:textSize="12sp"
-                        android:lineSpacingExtra="2dp" />
+                        android:textSize="13sp"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="• Clear, easy-to-understand results"
+                        android:textColor="#334155"
+                        android:textSize="13sp" />
                 </LinearLayout>
 
+                <!-- Primary Action: Get Started -->
                 <Button
                     android:id="@+id/btn_goto_assessment"
                     android:layout_width="match_parent"
-                    android:layout_height="52dp"
+                    android:layout_height="54dp"
                     android:backgroundTint="#2563EB"
-                    android:text="PATIENT ASSESSMENT"
+                    android:text="Get Started"
                     android:textColor="#FFFFFF"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Secondary Action: How it works -->
+                <TextView
+                    android:id="@+id/btn_how_it_works"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:padding="10dp"
+                    android:text="How it works"
+                    android:textColor="#2563EB"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/tv_how_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:padding="14dp"
+                    android:text="CardioSense uses a trained cardiovascular risk model to analyze the information you provide."
+                    android:textColor="#334155"
+                    android:textSize="13sp"
+                    android:lineSpacingExtra="2dp"
+                    android:visibility="gone"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Offline Indicator -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="#EFF6FF"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="6dp"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✓  Offline assessment available"
+                        android:textColor="#1E40AF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Preserved hidden Spinner for mode binding compatibility -->
+                <Spinner
+                    android:id="@+id/spinner_inference_mode"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tv_mode_description"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone" />
             </LinearLayout>
 
-            <!-- ================= SCREEN 2: PATIENT ASSESSMENT ================= -->
+            <!-- ================= SCREEN 2: HEALTH ASSESSMENT ================= -->
             <LinearLayout
                 android:id="@+id/screen_assessment"
                 android:layout_width="match_parent"
@@ -316,6 +255,7 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
+                <!-- Section Header -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -323,14 +263,27 @@
                     android:gravity="center_vertical"
                     android:layout_marginBottom="16dp">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Patient Assessment"
-                        android:textColor="#1E3A8A"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Health Assessment"
+                            android:textColor="#0F172A"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Enter your current health information"
+                            android:textColor="#475569"
+                            android:textSize="13sp" />
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/btn_cancel_assessment"
@@ -343,20 +296,23 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Inputs Grid -->
+                <!-- SECTION 1: PERSONAL -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="14dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="DEMOGRAPHICS &amp; BODY METRICS"
+                        android:text="PERSONAL"
                         android:textColor="#1E3A8A"
                         android:textSize="12sp"
                         android:textStyle="bold"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="12dp" />
 
                     <!-- Age & Gender -->
                     <LinearLayout
@@ -390,8 +346,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="14dp">
+                        android:orientation="horizontal">
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -413,22 +368,31 @@
                             <EditText android:id="@+id/et_weight" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/bg_input" android:inputType="numberDecimal" android:text="70.0" android:textColor="#0F172A" android:textSize="14sp" android:textStyle="bold"/>
                         </LinearLayout>
                     </LinearLayout>
+                </LinearLayout>
+
+                <!-- SECTION 2: VITALS -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="14dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="BLOOD PRESSURE &amp; CLINICAL CHEMISTRY"
+                        android:text="VITALS"
                         android:textColor="#1E3A8A"
                         android:textSize="12sp"
                         android:textStyle="bold"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="12dp" />
 
-                    <!-- BP Systolic & Diastolic -->
+                    <!-- Systolic & Diastolic BP -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="12dp">
+                        android:orientation="horizontal">
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -436,7 +400,7 @@
                             android:layout_weight="1"
                             android:orientation="vertical"
                             android:layout_marginEnd="6dp">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Systolic BP (ap_hi)" android:textSize="12sp" android:textStyle="bold" android:textColor="#0F172A"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Systolic BP (mmHg)" android:textSize="12sp" android:textStyle="bold" android:textColor="#0F172A"/>
                             <EditText android:id="@+id/et_ap_hi" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/bg_input" android:inputType="number" android:text="140" android:textColor="#0F172A" android:textSize="14sp" android:textStyle="bold"/>
                         </LinearLayout>
 
@@ -446,10 +410,29 @@
                             android:layout_weight="1"
                             android:orientation="vertical"
                             android:layout_marginStart="6dp">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Diastolic BP (ap_lo)" android:textSize="12sp" android:textStyle="bold" android:textColor="#0F172A"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Diastolic BP (mmHg)" android:textSize="12sp" android:textStyle="bold" android:textColor="#0F172A"/>
                             <EditText android:id="@+id/et_ap_lo" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/bg_input" android:inputType="number" android:text="90" android:textColor="#0F172A" android:textSize="14sp" android:textStyle="bold"/>
                         </LinearLayout>
                     </LinearLayout>
+                </LinearLayout>
+
+                <!-- SECTION 3: HEALTH & LIFESTYLE -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="HEALTH &amp; LIFESTYLE"
+                        android:textColor="#1E3A8A"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="12dp" />
 
                     <!-- Cholesterol -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginBottom="12dp">
@@ -458,19 +441,10 @@
                     </LinearLayout>
 
                     <!-- Glucose -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginBottom="14dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginBottom="12dp">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Glucose Level" android:textSize="12sp" android:textStyle="bold" android:textColor="#0F172A"/>
                         <Spinner android:id="@+id/spinner_glucose" android:layout_width="match_parent" android:layout_height="48dp" android:gravity="center_vertical" android:background="@drawable/bg_spinner"/>
                     </LinearLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="LIFESTYLE FACTORS"
-                        android:textColor="#1E3A8A"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="8dp" />
 
                     <!-- Smoking & Alcohol -->
                     <LinearLayout
@@ -501,11 +475,10 @@
                     </LinearLayout>
 
                     <!-- Physical Activity -->
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginBottom="24dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Physical Activity" android:textSize="12sp" android:textStyle="bold" android:textColor="#0F172A"/>
                         <Spinner android:id="@+id/spinner_active" android:layout_width="match_parent" android:layout_height="48dp" android:gravity="center_vertical" android:background="@drawable/bg_spinner"/>
                     </LinearLayout>
-
                 </LinearLayout>
 
                 <Button
@@ -513,13 +486,13 @@
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
                     android:backgroundTint="#2563EB"
-                    android:text="ANALYZE PATIENT"
+                    android:text="Assess Risk"
                     android:textColor="#FFFFFF"
                     android:textSize="15sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- ================= SCREEN 3: RESULT ================= -->
+            <!-- ================= SCREEN 3: RISK REPORT ================= -->
             <LinearLayout
                 android:id="@+id/screen_result"
                 android:layout_width="match_parent"
@@ -530,13 +503,13 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Cardiovascular Risk Assessment"
-                    android:textColor="#1E3A8A"
-                    android:textSize="19sp"
+                    android:text="Risk Assessment"
+                    android:textColor="#0F172A"
+                    android:textSize="20sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="14dp" />
 
-                <!-- Risk Card -->
+                <!-- Central Result Card -->
                 <LinearLayout
                     android:id="@+id/card_risk_primary"
                     android:layout_width="match_parent"
@@ -548,9 +521,36 @@
                     android:layout_marginBottom="14dp">
 
                     <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CARDIOVASCULAR RISK"
+                        android:textColor="#64748B"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_probability"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="73.88%"
+                        android:textColor="#1E3A8A"
+                        android:textSize="40sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Estimated Risk"
+                        android:textColor="#475569"
+                        android:textSize="13sp" />
+
+                    <TextView
                         android:id="@+id/tv_risk_tag"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
                         android:background="#FEE2E2"
                         android:paddingHorizontal="14dp"
                         android:paddingVertical="5dp"
@@ -558,28 +558,9 @@
                         android:textColor="#991B1B"
                         android:textSize="13sp"
                         android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tv_probability"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="73.88%"
-                        android:textColor="#1E3A8A"
-                        android:textSize="36sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="MODEL ESTIMATED PROBABILITY"
-                        android:textColor="#64748B"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Key Contributing Factors Card -->
+                <!-- Horizontal Risk Scale Card -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -591,9 +572,162 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="KEY CONTRIBUTING FACTORS"
+                        android:text="RISK CATEGORY SCALE"
                         android:textColor="#1E3A8A"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="10dp" />
+
+                    <!-- 4 Horizontal Scale Segments -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="24dp"
+                        android:orientation="horizontal">
+
+                        <View
+                            android:id="@+id/v_scale_low"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="3dp"
+                            android:background="@drawable/bg_scale_inactive" />
+
+                        <View
+                            android:id="@+id/v_scale_mod"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="3dp"
+                            android:background="@drawable/bg_scale_inactive" />
+
+                        <View
+                            android:id="@+id/v_scale_elev"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="3dp"
+                            android:background="@drawable/bg_scale_active" />
+
+                        <View
+                            android:id="@+id/v_scale_high"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_scale_inactive" />
+                    </LinearLayout>
+
+                    <!-- Segment Labels -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="6dp">
+
+                        <TextView
+                            android:id="@+id/tv_lbl_low"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="LOW"
+                            android:textColor="#64748B"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_lbl_mod"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="MODERATE"
+                            android:textColor="#64748B"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_lbl_elev"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="ELEVATED"
+                            android:textColor="#1E3A8A"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_lbl_high"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="HIGH"
+                            android:textColor="#64748B"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Patient Summary Card ("Your Health Snapshot") -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Your Health Snapshot"
+                        android:textColor="#1E3A8A"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="10dp" />
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Age" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_res_age" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="55.5 years" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="BMI" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_res_bmi" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="25.7 kg/m²" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Blood Pressure" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_res_bp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="140/90 mmHg" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Cholesterol" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_res_cholesterol" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Level 2" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Glucose" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tv_res_glucose" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Level 1" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Key Health Factors ("Factors Affecting Your Assessment") -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:layout_marginBottom="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Factors Affecting Your Assessment"
+                        android:textColor="#1E3A8A"
+                        android:textSize="13sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
 
@@ -601,13 +735,13 @@
                         android:id="@+id/tv_contributing_factors"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="• Elevated Blood Pressure (140/90 mmHg)\n• Above-normal serum cholesterol\n• Overweight BMI class"
+                        android:text="• Blood pressure is above the normal range\n• Cholesterol level is elevated\n• BMI is above the recommended range"
                         android:textColor="#0F172A"
                         android:textSize="13sp"
                         android:lineSpacingExtra="4dp" />
                 </LinearLayout>
 
-                <!-- Supporting Reasoning Card -->
+                <!-- Health Tips Card ("Health Tips") -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -619,101 +753,74 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="SUPPORTING CLINICAL REASONING"
+                        android:text="Health Tips"
                         android:textColor="#1E3A8A"
-                        android:textSize="12sp"
+                        android:textSize="13sp"
                         android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
+                        android:layout_marginBottom="8dp" />
 
                     <TextView
-                        android:id="@+id/tv_clinical_reasoning"
+                        android:id="@+id/tv_health_tips"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="The assessment is influenced primarily by the patient's blood pressure and cholesterol level. Decision support indicates statistical correlation with potential cardiovascular risk patterns derived from multicenter federated hospital cohorts."
+                        android:text="• Monitor your blood pressure regularly and discuss persistent high readings with a healthcare professional.\n• Maintain a balanced diet and discuss cholesterol management with a healthcare professional."
                         android:textColor="#334155"
-                        android:textSize="12sp"
-                        android:lineSpacingExtra="3dp" />
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="4dp" />
                 </LinearLayout>
 
-                <!-- Patient Summary Card -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:layout_marginBottom="14dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="PATIENT BASELINE METRICS"
-                        android:textColor="#1E3A8A"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="10dp" />
-
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Blood Pressure" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
-                        <TextView android:id="@+id/tv_res_bp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="140/90 mmHg" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
-                    </LinearLayout>
-
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="BMI" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
-                        <TextView android:id="@+id/tv_res_bmi" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="25.7 kg/m²" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
-                    </LinearLayout>
-
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Cholesterol" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
-                        <TextView android:id="@+id/tv_res_cholesterol" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Above Normal" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
-                    </LinearLayout>
-
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Physical Activity" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
-                        <TextView android:id="@+id/tv_res_activity" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Active" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
-                    </LinearLayout>
-
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Smoking Status" android:textColor="#475569" android:textSize="13sp" android:textStyle="bold"/>
-                        <TextView android:id="@+id/tv_res_smoking" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Non-Smoker" android:textColor="#0F172A" android:textSize="13sp" android:textStyle="bold"/>
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Clinical Disclaimer -->
+                <!-- Disclaimer Card -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_disclaimer"
                     android:orientation="vertical"
+                    android:padding="14dp"
                     android:layout_marginBottom="20dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⚠️ Clinical Disclaimer"
+                        android:text="Important Disclaimer"
                         android:textColor="#92400E"
                         android:textSize="12sp"
                         android:textStyle="bold"
-                        android:layout_marginBottom="2dp" />
+                        android:layout_marginBottom="3dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Decision support tool. Final clinical assessment remains with the healthcare professional. This tool estimates statistical risk patterns and does not constitute a definitive diagnosis."
+                        android:text="This assessment is for informational purposes and is not a medical diagnosis. Consult a qualified healthcare professional for medical advice."
                         android:textColor="#92400E"
-                        android:textSize="11sp"
+                        android:textSize="12sp"
                         android:lineSpacingExtra="2dp" />
                 </LinearLayout>
 
+                <!-- Bottom Actions -->
                 <Button
                     android:id="@+id/btn_new_assessment"
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
                     android:backgroundTint="#2563EB"
-                    android:text="NEW ASSESSMENT"
+                    android:text="New Assessment"
                     android:textColor="#FFFFFF"
                     android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:id="@+id/btn_edit_assessment"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_button_secondary"
+                    android:gravity="center"
+                    android:text="Edit Information"
+                    android:textColor="#1E3A8A"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginBottom="10dp" />
             </LinearLayout>
 
         </FrameLayout>

@@ -1,0 +1,136 @@
+{
+  "project_name": "CardioSense — Federated Learning Diagnostic Co-Pilot",
+  "dataset_info": {
+    "raw_records": 70000,
+    "cleaned_records": 68666,
+    "num_features": 11,
+    "target_variable": "cardio",
+    "clinic_partitions": {
+      "clinic_a": {
+        "name": "Clinic A (Older / Higher BP)",
+        "total_records": 22889,
+        "percentage": "33.33%",
+        "train_size": 18311,
+        "val_size": 2289,
+        "test_size": 2289
+      },
+      "clinic_b": {
+        "name": "Clinic B (Younger / Lower BP)",
+        "total_records": 22889,
+        "percentage": "33.33%",
+        "train_size": 18311,
+        "val_size": 2289,
+        "test_size": 2289
+      },
+      "clinic_c": {
+        "name": "Clinic C (Mixed Population)",
+        "total_records": 22888,
+        "percentage": "33.33%",
+        "train_size": 18311,
+        "val_size": 2289,
+        "test_size": 2289
+      }
+    }
+  },
+  "experimental_setup": {
+    "model_architecture": "MLP (Linear 11->64 -> ReLU -> Linear 64->32 -> ReLU -> Linear 32->1)",
+    "loss_function": "BCEWithLogitsLoss",
+    "optimizer": "Adam (lr=0.001)",
+    "batch_size": 64,
+    "local_epochs_per_round": 1,
+    "federated_rounds": 5,
+    "aggregation_strategy": "FedAvg via Flower (flwr)",
+    "random_seed": 42
+  },
+  "local_baseline_performance": {
+    "clinic_a_local": {
+      "model_type": "Local Baseline (Clinic A 20 Epochs)",
+      "test_cohort": "Clinic A Test Set (N=2289)",
+      "test_loss": 0.5584,
+      "accuracy": 0.7204,
+      "precision": 0.7491,
+      "recall": 0.7849,
+      "f1_score": 0.7666,
+      "roc_auc": "Not previously recorded"
+    },
+    "clinic_b_local": {
+      "model_type": "Local Baseline (Clinic B)",
+      "test_cohort": "Clinic B Test Set",
+      "test_loss": "Not previously recorded",
+      "accuracy": "Not previously recorded",
+      "precision": "Not previously recorded",
+      "recall": "Not previously recorded",
+      "f1_score": "Not previously recorded",
+      "roc_auc": "Not previously recorded"
+    },
+    "clinic_c_local": {
+      "model_type": "Local Baseline (Clinic C)",
+      "test_cohort": "Clinic C Test Set",
+      "test_loss": "Not previously recorded",
+      "accuracy": "Not previously recorded",
+      "precision": "Not previously recorded",
+      "recall": "Not previously recorded",
+      "f1_score": "Not previously recorded",
+      "roc_auc": "Not previously recorded"
+    }
+  },
+  "federated_global_performance": {
+    "clinic_a_test": {
+      "model_type": "Federated Global Model (5 Rounds)",
+      "test_cohort": "Clinic A Test Set (N=2289)",
+      "test_loss": 0.5791,
+      "accuracy": 0.7007,
+      "precision": 0.7957,
+      "recall": 0.6572,
+      "f1_score": 0.7198,
+      "roc_auc": "Not previously recorded"
+    },
+    "clinic_b_test": {
+      "model_type": "Federated Global Model (5 Rounds)",
+      "test_cohort": "Clinic B Test Set (N=2289)",
+      "test_loss": 0.5606,
+      "accuracy": 0.7204,
+      "precision": 0.6473,
+      "recall": 0.6670,
+      "f1_score": 0.6570,
+      "roc_auc": "Not previously recorded"
+    },
+    "clinic_c_test": {
+      "model_type": "Federated Global Model (5 Rounds)",
+      "test_cohort": "Clinic C Test Set (N=2289)",
+      "test_loss": 0.5401,
+      "accuracy": 0.7370,
+      "precision": 0.7545,
+      "recall": 0.6989,
+      "f1_score": 0.7256,
+      "roc_auc": "Not previously recorded"
+    }
+  },
+  "online_vs_offline_verification": {
+    "description": "Measures on-device inference engine numerical equivalence, NOT dataset model accuracy",
+    "test_input": {
+      "age": 55.5,
+      "gender": 1,
+      "height": 165.0,
+      "weight": 70.0,
+      "ap_hi": 140,
+      "ap_lo": 90,
+      "cholesterol": 2,
+      "gluc": 1,
+      "smoke": 0,
+      "alco": 0,
+      "active": 1
+    },
+    "online_fastapi_prediction": {
+      "predicted_class": 1,
+      "probability": 0.7388
+    },
+    "offline_local_engine_prediction": {
+      "predicted_class": 1,
+      "probability": 0.7388
+    },
+    "absolute_difference": 0.0,
+    "status": "100% Exact Equivalence Match"
+  },
+  "provenance_source": "c:\\Users\\utkar\\OneDrive\\Desktop\\FL\\federated-diagnostic-copilot\\PROJECT_STATUS.md"
+}

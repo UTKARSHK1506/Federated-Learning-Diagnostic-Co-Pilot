@@ -154,9 +154,6 @@ function showScreen(screenId) {
     } else if (screenId === 'screen-assessment') {
         const assessTab = document.getElementById('tab-assessment');
         if (assessTab) assessTab.classList.add('active');
-    } else if (screenId === 'screen-federated') {
-        const flTab = document.getElementById('tab-federated');
-        if (flTab) flTab.classList.add('active');
     }
 
     // Clear any previous validation alerts when navigating

@@ -26,6 +26,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvHeaderStatus: TextView
     private lateinit var tvModeDescription: TextView
 
+    // Expandable Home Section
+    private lateinit var btnHowItWorks: TextView
+    private lateinit var tvHowContent: TextView
+    private var isHowExpanded = false
+
     // Input Views
     private lateinit var etAge: EditText
     private lateinit var etHeight: EditText
@@ -45,12 +50,25 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvRiskTag: TextView
     private lateinit var tvProbability: TextView
     private lateinit var tvContributingFactors: TextView
-    private lateinit var tvClinicalReasoning: TextView
+    private lateinit var tvHealthTips: TextView
+
+    // Scale Views
+    private lateinit var vScaleLow: View
+    private lateinit var vScaleMod: View
+    private lateinit var vScaleElev: View
+    private lateinit var vScaleHigh: View
+
+    private lateinit var tvLblLow: TextView
+    private lateinit var tvLblMod: TextView
+    private lateinit var tvLblElev: TextView
+    private lateinit var tvLblHigh: TextView
+
+    // Summary Snapshot Views
+    private lateinit var tvResAge: TextView
     private lateinit var tvResBp: TextView
     private lateinit var tvResBmi: TextView
     private lateinit var tvResCholesterol: TextView
-    private lateinit var tvResActivity: TextView
-    private lateinit var tvResSmoking: TextView
+    private lateinit var tvResGlucose: TextView
 
     // Offline Assets
     private var weightsJson: JSONObject? = null
@@ -76,6 +94,14 @@ class MainActivity : AppCompatActivity() {
         tvModeDescription = findViewById(R.id.tv_mode_description)
         spinnerMode = findViewById(R.id.spinner_inference_mode)
 
+        btnHowItWorks = findViewById(R.id.btn_how_it_works)
+        tvHowContent = findViewById(R.id.tv_how_content)
+
+        btnHowItWorks.setOnClickListener {
+            isHowExpanded = !isHowExpanded
+            tvHowContent.visibility = if (isHowExpanded) View.VISIBLE else View.GONE
+        }
+
         etAge = findViewById(R.id.et_age)
         etHeight = findViewById(R.id.et_height)
         etWeight = findViewById(R.id.et_weight)
@@ -93,13 +119,23 @@ class MainActivity : AppCompatActivity() {
         tvRiskTag = findViewById(R.id.tv_risk_tag)
         tvProbability = findViewById(R.id.tv_probability)
         tvContributingFactors = findViewById(R.id.tv_contributing_factors)
-        tvClinicalReasoning = findViewById(R.id.tv_clinical_reasoning)
+        tvHealthTips = findViewById(R.id.tv_health_tips)
 
+        vScaleLow = findViewById(R.id.v_scale_low)
+        vScaleMod = findViewById(R.id.v_scale_mod)
+        vScaleElev = findViewById(R.id.v_scale_elev)
+        vScaleHigh = findViewById(R.id.v_scale_high)
+
+        tvLblLow = findViewById(R.id.tv_lbl_low)
+        tvLblMod = findViewById(R.id.tv_lbl_mod)
+        tvLblElev = findViewById(R.id.tv_lbl_elev)
+        tvLblHigh = findViewById(R.id.tv_lbl_high)
+
+        tvResAge = findViewById(R.id.tv_res_age)
         tvResBp = findViewById(R.id.tv_res_bp)
         tvResBmi = findViewById(R.id.tv_res_bmi)
         tvResCholesterol = findViewById(R.id.tv_res_cholesterol)
-        tvResActivity = findViewById(R.id.tv_res_activity)
-        tvResSmoking = findViewById(R.id.tv_res_smoking)
+        tvResGlucose = findViewById(R.id.tv_res_glucose)
 
         findViewById<Button>(R.id.btn_goto_assessment).setOnClickListener {
             showScreen(screenAssessment)
@@ -114,8 +150,27 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btn_new_assessment).setOnClickListener {
+            resetAssessmentForm()
             showScreen(screenAssessment)
         }
+
+        findViewById<TextView>(R.id.btn_edit_assessment).setOnClickListener {
+            showScreen(screenAssessment)
+        }
+    }
+
+    private fun resetAssessmentForm() {
+        etAge.setText("55.5")
+        etHeight.setText("165.0")
+        etWeight.setText("70.0")
+        etApHi.setText("140")
+        etApLo.setText("90")
+        spinnerGender.setSelection(0)
+        spinnerCholesterol.setSelection(1)
+        spinnerGlucose.setSelection(0)
+        spinnerSmoke.setSelection(0)
+        spinnerAlco.setSelection(0)
+        spinnerActive.setSelection(1)
     }
 
     private fun createCustomAdapter(items: Array<String>): ArrayAdapter<String> {
@@ -125,19 +180,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSpinners() {
-        val modeOptions = arrayOf("Offline Mode (Local)", "Online Mode (FastAPI)")
+        val modeOptions = arrayOf("Offline Mode", "Online Mode")
         spinnerMode.adapter = createCustomAdapter(modeOptions)
 
         spinnerMode.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (position == 1) {
-                    tvHeaderStatus.text = "Online Mode"
+                    tvHeaderStatus.text = "[ Online ]"
                     tvHeaderStatus.setBackgroundColor(Color.parseColor("#10B981"))
-                    tvModeDescription.text = "Connected to central FastAPI server for remote inference verification and federated parameter synchronization."
+                    tvModeDescription.text = "Connected to server"
                 } else {
-                    tvHeaderStatus.text = "Offline Mode (Local)"
+                    tvHeaderStatus.text = "[ Offline ]"
                     tvHeaderStatus.setBackgroundColor(Color.parseColor("#2563EB"))
-                    tvModeDescription.text = "Local engine active. Standalone neural network computes risk predictions on-device with 0ms network latency."
+                    tvModeDescription.text = "Runs directly on this device"
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -329,7 +384,7 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 mainHandler.post {
-                    Toast.makeText(this@MainActivity, "Online Server Unreachable. Using Offline Local Engine.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "Online Server Unreachable. Using Offline Mode.", Toast.LENGTH_SHORT).show()
                     executeOfflineInference(age, gender, height, weight, apHi, apLo, cholesterol, glucose, smoke, alco, active)
                 }
             }
@@ -356,74 +411,104 @@ class MainActivity : AppCompatActivity() {
         val pct = String.format("%.2f%%", prob * 100)
         tvProbability.text = pct
 
+        // Update Risk Scale Indicator Position
+        val activeBg = R.drawable.bg_scale_active
+        val inactiveBg = R.drawable.bg_scale_inactive
+
+        vScaleLow.setBackgroundResource(inactiveBg)
+        vScaleMod.setBackgroundResource(inactiveBg)
+        vScaleElev.setBackgroundResource(inactiveBg)
+        vScaleHigh.setBackgroundResource(inactiveBg)
+
+        tvLblLow.setTextColor(Color.parseColor("#64748B"))
+        tvLblMod.setTextColor(Color.parseColor("#64748B"))
+        tvLblElev.setTextColor(Color.parseColor("#64748B"))
+        tvLblHigh.setTextColor(Color.parseColor("#64748B"))
+
+        when {
+            prob < 0.30 -> {
+                vScaleLow.setBackgroundResource(activeBg)
+                tvLblLow.setTextColor(Color.parseColor("#1E3A8A"))
+            }
+            prob < 0.50 -> {
+                vScaleMod.setBackgroundResource(activeBg)
+                tvLblMod.setTextColor(Color.parseColor("#1E3A8A"))
+            }
+            prob < 0.75 -> {
+                vScaleElev.setBackgroundResource(activeBg)
+                tvLblElev.setTextColor(Color.parseColor("#1E3A8A"))
+            }
+            else -> {
+                vScaleHigh.setBackgroundResource(activeBg)
+                tvLblHigh.setTextColor(Color.parseColor("#1E3A8A"))
+            }
+        }
+
+        // Snapshot Values
+        tvResAge.text = String.format("%.1f years", age)
         tvResBp.text = "$apHi/$apLo mmHg"
         
         val heightM = height / 100.0
         val bmi = if (heightM > 0) weight / (heightM * heightM) else 22.0
         tvResBmi.text = String.format("%.1f kg/m²", bmi)
 
-        val cholMap = arrayOf("Normal (< 200 mg/dL)", "Above Normal (200-239 mg/dL)", "Well Above Normal (≥ 240 mg/dL)")
-        tvResCholesterol.text = cholMap.getOrElse(cholesterol - 1) { "Normal" }
+        tvResCholesterol.text = "Level $cholesterol"
+        tvResGlucose.text = "Level $glucose"
 
-        tvResActivity.text = if (active == 1) "Active (≥ 30 min/day)" else "Inactive"
-        tvResSmoking.text = if (smoke == 1) "Active Smoker" else "Non-Smoker"
-
-        // Build Contributing Factors & Clinical Reasoning
+        // Build Deterministic Contributing Factors & General Health Tips
         val factors = mutableListOf<String>()
-        val aspects = mutableListOf<String>()
+        val tips = mutableListOf<String>()
 
         if (apHi >= 140 || apLo >= 90) {
-            factors.add("• Elevated Blood Pressure: $apHi/$apLo mmHg (Hypertension range)")
-            aspects.add("blood pressure")
+            factors.add("• Blood pressure is above the normal range ($apHi/$apLo mmHg)")
+            tips.add("• Monitor your blood pressure regularly and discuss persistent high readings with a healthcare professional.")
         } else if (apHi >= 130 || apLo >= 80) {
-            factors.add("• Prehypertension Blood Pressure: $apHi/$apLo mmHg")
-            aspects.add("borderline blood pressure")
+            factors.add("• Blood pressure is in the prehypertension range ($apHi/$apLo mmHg)")
+            tips.add("• Monitor your blood pressure periodically and consider adopting a balanced low-sodium diet.")
         }
 
         if (cholesterol >= 2) {
-            factors.add("• Above-normal serum cholesterol (Level $cholesterol)")
-            aspects.add("cholesterol level")
+            val cholDesc = if (cholesterol == 3) "significantly elevated" else "elevated"
+            factors.add("• Cholesterol level is $cholDesc")
+            tips.add("• Maintain a balanced diet low in saturated fats and discuss cholesterol management with a healthcare professional.")
         }
 
         if (glucose >= 2) {
-            factors.add("• Elevated fasting blood glucose (Level $glucose)")
-            aspects.add("blood glucose")
+            factors.add("• Blood glucose level is elevated")
+            tips.add("• Monitor your diet and consult a healthcare provider regarding blood glucose management.")
         }
 
         if (active == 0) {
-            factors.add("• Physical inactivity reported (< 30 min/day)")
-            aspects.add("physical inactivity")
+            factors.add("• Physical activity is low (< 30 min/day)")
+            tips.add("• Aim for regular moderate physical activity, as appropriate for your health condition.")
         }
 
         if (smoke == 1) {
-            factors.add("• Active tobacco smoker status")
-            aspects.add("smoking status")
+            factors.add("• Active smoking status reported")
+            tips.add("• Avoid smoking and consider professional support if you want to quit.")
         }
 
         if (bmi >= 25.0) {
-            factors.add(String.format("• Elevated Body Mass Index: %.1f kg/m²", bmi))
-            aspects.add("body mass index")
+            factors.add(String.format("• BMI is above the recommended range (%.1f kg/m²)", bmi))
+            tips.add("• Focus on sustainable nutrition and regular physical activity rather than rapid weight-loss approaches.")
         }
 
         if (age >= 55.0) {
-            factors.add(String.format("• Age demographic factor: %.1f years", age))
-            aspects.add("age factor")
+            factors.add(String.format("• Age demographic factor (%.1f years)", age))
         }
 
         if (factors.isEmpty()) {
-            factors.add("• Optimal baseline blood pressure reading")
-            factors.add("• Normal lipid and glucose profile")
-            factors.add("• Active lifestyle factors")
+            factors.add("• Blood pressure reading is within normal limits")
+            factors.add("• Cholesterol and glucose levels are within normal limits")
+            factors.add("• Active lifestyle factors reported")
+        }
+
+        if (tips.isEmpty()) {
+            tips.add("• Continue maintaining a balanced lifestyle, regular physical activity, and routine health assessments.")
         }
 
         tvContributingFactors.text = factors.joinToString("\n")
-
-        if (predClass == 1 && aspects.isNotEmpty()) {
-            val aspectStr = aspects.distinct().joinToString(", ")
-            tvClinicalReasoning.text = "The assessment is influenced primarily by the patient's $aspectStr. Decision support indicates statistical correlation with potential cardiovascular risk patterns derived from multicenter federated hospital cohorts."
-        } else {
-            tvClinicalReasoning.text = "The assessment indicates optimal alignment across primary vascular metrics (blood pressure, lipid profile, and activity levels), resulting in a lower potential cardiovascular risk estimation."
-        }
+        tvHealthTips.text = tips.joinToString("\n")
 
         showScreen(screenResult)
     }

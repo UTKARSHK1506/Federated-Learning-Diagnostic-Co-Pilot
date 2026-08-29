@@ -1,0 +1,37 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:layout_width="120dp"
+    android:height="120dp"
+    android:layout_height="120dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Subtle Background Circle Glow -->
+    <path
+        android:fillColor="#EFF6FF"
+        android:pathData="M 50 10 A 40 40 0 1 0 50 90 A 40 40 0 1 0 50 10 Z" />
+
+    <!-- Heart Outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#1E3A8A"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 50,30 
+                  C 50,30 42,18 30,18 
+                  C 18,18 12,28 12,40 
+                  C 12,58 35,74 50,84 
+                  C 65,74 88,58 88,40 
+                  C 88,28 82,18 70,18 
+                  C 58,18 50,30 50,30 Z" />
+
+    <!-- Teal ECG / Pulse Line Overlay -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#0D9488"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 18,50 L 34,50 L 40,36 L 46,64 L 54,28 L 60,56 L 66,50 L 82,50" />
+</vector>
