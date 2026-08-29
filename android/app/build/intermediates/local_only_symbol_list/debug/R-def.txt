@@ -1,0 +1,26 @@
+R_DEF: Internal format may change without notice
+local
+color accent_blue
+color background_gray
+color badge_success_bg
+color badge_success_text
+color card_border
+color primary_blue
+color risk_high_bg
+color risk_high_border
+color risk_high_text
+color risk_low_bg
+color risk_low_border
+color risk_low_text
+color text_primary
+color text_secondary
+string app_name
+string btn_analyze_patient
+string btn_new_assessment
+string btn_patient_assessment
+string clinics_count
+string rounds_count
+string status_operational
+string subtitle_home
+string title_home
+style Theme.FederatedCopilot

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent_blue">#2563EB</color>
+    <color name="background_gray">#F8FAFC</color>
+    <color name="badge_success_bg">#D1FAE5</color>
+    <color name="badge_success_text">#065F46</color>
+    <color name="card_border">#CBD5E1</color>
+    <color name="primary_blue">#1E3A8A</color>
+    <color name="risk_high_bg">#FEF2F2</color>
+    <color name="risk_high_border">#FCA5A5</color>
+    <color name="risk_high_text">#991B1B</color>
+    <color name="risk_low_bg">#ECFDF5</color>
+    <color name="risk_low_border">#6EE7B7</color>
+    <color name="risk_low_text">#065F46</color>
+    <color name="text_primary">#0F172A</color>
+    <color name="text_secondary">#475569</color>
+    <string name="app_name">Diagnostic Co-Pilot</string>
+    <string name="btn_analyze_patient">Analyze Patient</string>
+    <string name="btn_new_assessment">New Assessment</string>
+    <string name="btn_patient_assessment">Patient Assessment</string>
+    <string name="clinics_count">Clinics: 3</string>
+    <string name="rounds_count">Federated Rounds: 5</string>
+    <string name="status_operational">Global Model: Operational</string>
+    <string name="subtitle_home">Clinical Decision Support System</string>
+    <string name="title_home">Federated Diagnostic Co-Pilot</string>
+    <style name="Theme.FederatedCopilot" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_blue</item>
+        <item name="colorPrimaryVariant">@color/primary_blue</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="android:statusBarColor">@color/primary_blue</item>
+    </style>
+</resources>
