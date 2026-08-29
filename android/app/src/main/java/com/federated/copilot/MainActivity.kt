@@ -1,37 +1,62 @@
 package com.federated.copilot
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import android.view.View
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import org.json.JSONObject
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 import java.util.concurrent.Executors
 import kotlin.math.exp
 import kotlin.math.max
 
 class MainActivity : AppCompatActivity() {
 
-    // Views
-    private lateinit var screenHome: View
+    // Screens
+    private lateinit var screenWelcome: View
+    private lateinit var screenDashboard: View
+    private lateinit var screenOcrUpload: View
+    private lateinit var screenOcrReview: View
     private lateinit var screenAssessment: View
     private lateinit var screenResult: View
+    private lateinit var screenHealthTips: View
+    private lateinit var screenHowItWorks: View
+    private lateinit var screenHistory: View
 
-    private lateinit var spinnerMode: Spinner
+    // Navigation & Header Status
     private lateinit var tvHeaderStatus: TextView
+    private lateinit var spinnerMode: Spinner
     private lateinit var tvModeDescription: TextView
 
-    // Expandable Home Section
-    private lateinit var btnHowItWorks: TextView
-    private lateinit var tvHowContent: TextView
-    private var isHowExpanded = false
+    // Bottom Nav Labels
+    private lateinit var navLblHome: TextView
+    private lateinit var navLblAssess: TextView
+    private lateinit var navLblHistory: TextView
+    private lateinit var navLblTips: TextView
 
-    // Input Views
+    // Bottom Navigation Buttons
+    private lateinit var navBtnHome: View
+    private lateinit var navBtnAssess: View
+    private lateinit var navBtnHistory: View
+    private lateinit var navBtnTips: View
+
+    // Assessment Inputs
     private lateinit var etAge: EditText
     private lateinit var etHeight: EditText
     private lateinit var etWeight: EditText
@@ -50,7 +75,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvRiskTag: TextView
     private lateinit var tvProbability: TextView
     private lateinit var tvContributingFactors: TextView
-    private lateinit var tvHealthTips: TextView
 
     // Scale Views
     private lateinit var vScaleLow: View
@@ -70,11 +94,54 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvResCholesterol: TextView
     private lateinit var tvResGlucose: TextView
 
-    // Offline Assets
+    // History Views
+    private lateinit var tvHistoryEmpty: TextView
+    private lateinit var containerHistoryList: LinearLayout
+
+    // OCR Alert
+    private lateinit var tvOcrStatusAlert: TextView
+
+    // State Variables
+    private var lastComputedProb: Double = 0.0
+    private var lastComputedCategory: String = "Unknown"
+    private var lastComputedApHi: Int = 140
+    private var lastComputedApLo: Int = 90
+    private var lastComputedAge: Double = 55.5
+
+    // Offline Assets & Executor
     private var weightsJson: JSONObject? = null
     private var scalerJson: JSONObject? = null
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    // Activity Result Launchers for Report Selection Options
+
+    // 1. Take Photo
+    private val takePhotoLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
+        if (bitmap != null) {
+            val processed = OcrImagePreprocessor.preprocessBitmap(bitmap)
+            processOcrBitmap(processed)
+        }
+    }
+
+    // 2. Choose Image (JPG, PNG, WEBP, HEIC - Google Photos Compatible)
+    private val selectImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            processOcrImageUri(uri)
+        }
+    }
+
+    // 3. Choose PDF Document
+    private val selectPdfLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            val mime = contentResolver.getType(uri) ?: ""
+            if (mime.contains("pdf", ignoreCase = true) || uri.toString().endsWith(".pdf", ignoreCase = true)) {
+                processOcrPdf(uri)
+            } else {
+                processOcrImageUri(uri)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,21 +153,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        screenHome = findViewById(R.id.screen_home)
+        screenWelcome = findViewById(R.id.screen_welcome)
+        screenDashboard = findViewById(R.id.screen_dashboard)
+        screenOcrUpload = findViewById(R.id.screen_ocr_upload)
+        screenOcrReview = findViewById(R.id.screen_ocr_review)
         screenAssessment = findViewById(R.id.screen_assessment)
         screenResult = findViewById(R.id.screen_result)
+        screenHealthTips = findViewById(R.id.screen_health_tips)
+        screenHowItWorks = findViewById(R.id.screen_how_it_works)
+        screenHistory = findViewById(R.id.screen_history)
 
         tvHeaderStatus = findViewById(R.id.tv_header_status)
-        tvModeDescription = findViewById(R.id.tv_mode_description)
         spinnerMode = findViewById(R.id.spinner_inference_mode)
+        tvModeDescription = findViewById(R.id.tv_mode_description)
 
-        btnHowItWorks = findViewById(R.id.btn_how_it_works)
-        tvHowContent = findViewById(R.id.tv_how_content)
+        navLblHome = findViewById(R.id.nav_lbl_home)
+        navLblAssess = findViewById(R.id.nav_lbl_assess)
+        navLblHistory = findViewById(R.id.nav_lbl_history)
+        navLblTips = findViewById(R.id.nav_lbl_tips)
 
-        btnHowItWorks.setOnClickListener {
-            isHowExpanded = !isHowExpanded
-            tvHowContent.visibility = if (isHowExpanded) View.VISIBLE else View.GONE
-        }
+        navBtnHome = findViewById(R.id.nav_btn_home)
+        navBtnAssess = findViewById(R.id.nav_btn_assess)
+        navBtnHistory = findViewById(R.id.nav_btn_history)
+        navBtnTips = findViewById(R.id.nav_btn_tips)
 
         etAge = findViewById(R.id.et_age)
         etHeight = findViewById(R.id.et_height)
@@ -119,7 +194,6 @@ class MainActivity : AppCompatActivity() {
         tvRiskTag = findViewById(R.id.tv_risk_tag)
         tvProbability = findViewById(R.id.tv_probability)
         tvContributingFactors = findViewById(R.id.tv_contributing_factors)
-        tvHealthTips = findViewById(R.id.tv_health_tips)
 
         vScaleLow = findViewById(R.id.v_scale_low)
         vScaleMod = findViewById(R.id.v_scale_mod)
@@ -137,40 +211,106 @@ class MainActivity : AppCompatActivity() {
         tvResCholesterol = findViewById(R.id.tv_res_cholesterol)
         tvResGlucose = findViewById(R.id.tv_res_glucose)
 
-        findViewById<Button>(R.id.btn_goto_assessment).setOnClickListener {
-            showScreen(screenAssessment)
+        tvHistoryEmpty = findViewById(R.id.tv_history_empty)
+        containerHistoryList = findViewById(R.id.container_history_list)
+        tvOcrStatusAlert = findViewById(R.id.tv_ocr_status_alert)
+
+        // Welcome listeners
+        findViewById<Button>(R.id.btn_welcome_start).setOnClickListener {
+            showScreen(screenDashboard, navLblHome)
+        }
+        findViewById<TextView>(R.id.btn_welcome_how).setOnClickListener {
+            showScreen(screenHowItWorks, navLblHome)
         }
 
+        // Dashboard cards
+        findViewById<View>(R.id.dash_card_assess).setOnClickListener {
+            showScreen(screenAssessment, navLblAssess)
+        }
+        findViewById<View>(R.id.dash_card_ocr).setOnClickListener {
+            showScreen(screenOcrUpload, navLblAssess)
+        }
+        findViewById<View>(R.id.dash_card_tips).setOnClickListener {
+            showScreen(screenHealthTips, navLblTips)
+        }
+        findViewById<View>(R.id.dash_card_history).setOnClickListener {
+            loadAndDisplayHistory()
+            showScreen(screenHistory, navLblHistory)
+        }
+
+        // Report Upload Actions
+        findViewById<Button>(R.id.btn_select_ocr_image).setOnClickListener {
+            selectImageLauncher.launch("image/*")
+        }
+        findViewById<Button>(R.id.btn_select_ocr_pdf).setOnClickListener {
+            selectPdfLauncher.launch("application/pdf")
+        }
+        findViewById<Button>(R.id.btn_take_photo_ocr).setOnClickListener {
+            takePhotoLauncher.launch(null)
+        }
+
+        // OCR Review Action
+        findViewById<Button>(R.id.btn_confirm_ocr_review).setOnClickListener {
+            showScreen(screenAssessment, navLblAssess)
+        }
+
+        // Assessment Actions
         findViewById<TextView>(R.id.btn_cancel_assessment).setOnClickListener {
-            showScreen(screenHome)
+            showScreen(screenDashboard, navLblHome)
         }
-
         findViewById<Button>(R.id.btn_analyze_patient).setOnClickListener {
             handleAnalyzePatient()
         }
 
+        // Result Actions
+        findViewById<Button>(R.id.btn_save_history).setOnClickListener {
+            HistoryManager.saveAssessment(
+                this,
+                lastComputedProb,
+                lastComputedCategory,
+                lastComputedApHi,
+                lastComputedApLo,
+                lastComputedAge
+            )
+            Toast.makeText(this, "Assessment saved to history", Toast.LENGTH_SHORT).show()
+            loadAndDisplayHistory()
+            showScreen(screenHistory, navLblHistory)
+        }
+
         findViewById<Button>(R.id.btn_new_assessment).setOnClickListener {
             resetAssessmentForm()
-            showScreen(screenAssessment)
+            showScreen(screenAssessment, navLblAssess)
         }
 
-        findViewById<TextView>(R.id.btn_edit_assessment).setOnClickListener {
-            showScreen(screenAssessment)
+        // Bottom Navigation Bar Listeners
+        navBtnHome.setOnClickListener { showScreen(screenDashboard, navLblHome) }
+        navBtnAssess.setOnClickListener { showScreen(screenAssessment, navLblAssess) }
+        navBtnHistory.setOnClickListener {
+            loadAndDisplayHistory()
+            showScreen(screenHistory, navLblHistory)
         }
+        navBtnTips.setOnClickListener { showScreen(screenHealthTips, navLblTips) }
     }
 
-    private fun resetAssessmentForm() {
-        etAge.setText("55.5")
-        etHeight.setText("165.0")
-        etWeight.setText("70.0")
-        etApHi.setText("140")
-        etApLo.setText("90")
-        spinnerGender.setSelection(0)
-        spinnerCholesterol.setSelection(1)
-        spinnerGlucose.setSelection(0)
-        spinnerSmoke.setSelection(0)
-        spinnerAlco.setSelection(0)
-        spinnerActive.setSelection(1)
+    private fun showScreen(target: View, activeNavLabel: TextView? = null) {
+        screenWelcome.visibility = View.GONE
+        screenDashboard.visibility = View.GONE
+        screenOcrUpload.visibility = View.GONE
+        screenOcrReview.visibility = View.GONE
+        screenAssessment.visibility = View.GONE
+        screenResult.visibility = View.GONE
+        screenHealthTips.visibility = View.GONE
+        screenHowItWorks.visibility = View.GONE
+        screenHistory.visibility = View.GONE
+
+        target.visibility = View.VISIBLE
+
+        navLblHome.setTextColor(Color.parseColor("#64748B"))
+        navLblAssess.setTextColor(Color.parseColor("#64748B"))
+        navLblHistory.setTextColor(Color.parseColor("#64748B"))
+        navLblTips.setTextColor(Color.parseColor("#64748B"))
+
+        activeNavLabel?.setTextColor(Color.parseColor("#0D9488"))
     }
 
     private fun createCustomAdapter(items: Array<String>): ArrayAdapter<String> {
@@ -188,11 +328,11 @@ class MainActivity : AppCompatActivity() {
                 if (position == 1) {
                     tvHeaderStatus.text = "[ Online ]"
                     tvHeaderStatus.setBackgroundColor(Color.parseColor("#10B981"))
-                    tvModeDescription.text = "Connected to server"
+                    tvModeDescription.text = "Connected to central server"
                 } else {
                     tvHeaderStatus.text = "[ Offline ]"
-                    tvHeaderStatus.setBackgroundColor(Color.parseColor("#2563EB"))
-                    tvModeDescription.text = "Runs directly on this device"
+                    tvHeaderStatus.setBackgroundColor(Color.parseColor("#0F766E"))
+                    tvModeDescription.text = "On-device local engine"
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -205,16 +345,22 @@ class MainActivity : AppCompatActivity() {
         spinnerAlco.adapter = createCustomAdapter(arrayOf("Non-Drinker", "Regular Drinker"))
         spinnerActive.adapter = createCustomAdapter(arrayOf("Physically Inactive", "Physically Active"))
 
-        // Set default selections matching standard test sample
-        spinnerCholesterol.setSelection(1) // Above Normal
-        spinnerActive.setSelection(1) // Physically Active
+        spinnerCholesterol.setSelection(1)
+        spinnerActive.setSelection(1)
     }
 
-    private fun showScreen(target: View) {
-        screenHome.visibility = View.GONE
-        screenAssessment.visibility = View.GONE
-        screenResult.visibility = View.GONE
-        target.visibility = View.VISIBLE
+    private fun resetAssessmentForm() {
+        etAge.setText("55.5")
+        etHeight.setText("165.0")
+        etWeight.setText("70.0")
+        etApHi.setText("140")
+        etApLo.setText("90")
+        spinnerGender.setSelection(0)
+        spinnerCholesterol.setSelection(1)
+        spinnerGlucose.setSelection(0)
+        spinnerSmoke.setSelection(0)
+        spinnerAlco.setSelection(0)
+        spinnerActive.setSelection(1)
     }
 
     private fun loadLocalAssetsAsync() {
@@ -231,6 +377,134 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
         }
+    }
+
+    private fun processOcrImageUri(uri: Uri) {
+        try {
+            val mime = contentResolver.getType(uri) ?: ""
+            if (mime.contains("pdf", ignoreCase = true) || uri.toString().endsWith(".pdf", ignoreCase = true)) {
+                processOcrPdf(uri)
+                return
+            }
+
+            val bitmap: Bitmap? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                ImageDecoder.decodeBitmap(ImageDecoder.createSource(contentResolver, uri)) { decoder, _, _ ->
+                    decoder.isMutableRequired = true
+                }
+            } else {
+                contentResolver.openInputStream(uri).use { stream ->
+                    BitmapFactory.decodeStream(stream)
+                }
+            }
+
+            if (bitmap != null) {
+                val processed = OcrImagePreprocessor.preprocessBitmap(bitmap)
+                processOcrBitmap(processed)
+            } else {
+                Toast.makeText(this, "Could not load image. Please select another file.", Toast.LENGTH_SHORT).show()
+                showScreen(screenAssessment, navLblAssess)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error processing report image: ${e.message}", Toast.LENGTH_SHORT).show()
+            showScreen(screenAssessment, navLblAssess)
+        }
+    }
+
+    private fun processOcrBitmap(bitmap: Bitmap) {
+        try {
+            val image = InputImage.fromBitmap(bitmap, 0)
+            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+            Toast.makeText(this, "Processing report on-device...", Toast.LENGTH_SHORT).show()
+
+            recognizer.process(image)
+                .addOnSuccessListener { visionText ->
+                    val rawText = visionText.text
+                    if (rawText.isBlank()) {
+                        Toast.makeText(this, "We couldn't read enough information from this report. Please enter information manually.", Toast.LENGTH_LONG).show()
+                        showScreen(screenAssessment, navLblAssess)
+                        return@addOnSuccessListener
+                    }
+
+                    val parsed = OcrReportParser.parseText(rawText)
+                    populateAssessmentFromOcr(parsed)
+                    showScreen(screenOcrReview, navLblAssess)
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "OCR failed: ${e.message}. Please enter information manually.", Toast.LENGTH_LONG).show()
+                    showScreen(screenAssessment, navLblAssess)
+                }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error processing report: ${e.message}", Toast.LENGTH_SHORT).show()
+            showScreen(screenAssessment, navLblAssess)
+        }
+    }
+
+    private fun processOcrPdf(pdfUri: Uri) {
+        executor.execute {
+            val pages = PdfOcrExtractor.renderPdfToBitmaps(this, pdfUri, maxPages = 3)
+            if (pages.isEmpty()) {
+                mainHandler.post {
+                    Toast.makeText(this, "Could not render PDF document. Please choose an image or enter manually.", Toast.LENGTH_LONG).show()
+                    showScreen(screenAssessment, navLblAssess)
+                }
+                return@execute
+            }
+
+            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            val combinedText = StringBuilder()
+            var processedCount = 0
+
+            mainHandler.post {
+                Toast.makeText(this, "Processing PDF report pages on-device...", Toast.LENGTH_SHORT).show()
+            }
+
+            for (pageBitmap in pages) {
+                val preprocessed = OcrImagePreprocessor.preprocessBitmap(pageBitmap)
+                val image = InputImage.fromBitmap(preprocessed, 0)
+                recognizer.process(image)
+                    .addOnSuccessListener { visionText ->
+                        combinedText.append("\n").append(visionText.text)
+                        processedCount++
+                        if (processedCount == pages.size) {
+                            val parsed = OcrReportParser.parseText(combinedText.toString())
+                            populateAssessmentFromOcr(parsed)
+                            showScreen(screenOcrReview, navLblAssess)
+                        }
+                    }
+                    .addOnFailureListener {
+                        processedCount++
+                        if (processedCount == pages.size) {
+                            val parsed = OcrReportParser.parseText(combinedText.toString())
+                            populateAssessmentFromOcr(parsed)
+                            showScreen(screenOcrReview, navLblAssess)
+                        }
+                    }
+            }
+        }
+    }
+
+    private fun populateAssessmentFromOcr(parsed: OcrExtractedPatient) {
+        parsed.age?.let { etAge.setText(String.format(Locale.US, "%.1f", it)) }
+        parsed.height?.let { etHeight.setText(String.format(Locale.US, "%.1f", it)) }
+        parsed.weight?.let { etWeight.setText(String.format(Locale.US, "%.1f", it)) }
+        parsed.apHi?.let { etApHi.setText(it.toString()) }
+        parsed.apLo?.let { etApLo.setText(it.toString()) }
+
+        parsed.gender?.let { if (it in 1..2) spinnerGender.setSelection(it - 1) }
+        parsed.cholesterol?.let { if (it in 1..3) spinnerCholesterol.setSelection(it - 1) }
+        parsed.glucose?.let { if (it in 1..3) spinnerGlucose.setSelection(it - 1) }
+        parsed.smoke?.let { if (it in 0..1) spinnerSmoke.setSelection(it) }
+        parsed.alco?.let { if (it in 0..1) spinnerAlco.setSelection(it) }
+        parsed.active?.let { if (it in 0..1) spinnerActive.setSelection(it) }
+
+        val alertText = StringBuilder("OCR Extraction Complete — Your report is processed on this device.")
+        if (parsed.warningMsg != null) {
+            alertText.append("\n\n⚠️ ").append(parsed.warningMsg)
+        }
+        tvOcrStatusAlert.text = alertText.toString()
     }
 
     private fun handleAnalyzePatient() {
@@ -273,14 +547,12 @@ class MainActivity : AppCompatActivity() {
             val means = sJson.getJSONArray("mean")
             val scales = sJson.getJSONArray("scale")
 
-            // Standardize continuous features (age, height, weight, ap_hi, ap_lo)
             val ageStd = (age - means.getDouble(0)) / scales.getDouble(0)
             val heightStd = (height - means.getDouble(1)) / scales.getDouble(1)
             val weightStd = (weight - means.getDouble(2)) / scales.getDouble(2)
             val apHiStd = (apHi - means.getDouble(3)) / scales.getDouble(3)
             val apLoStd = (apLo - means.getDouble(4)) / scales.getDouble(4)
 
-            // Input array (11 features in canonical order)
             val input = doubleArrayOf(
                 ageStd, gender.toDouble(), heightStd, weightStd, apHiStd, apLoStd,
                 cholesterol.toDouble(), glucose.toDouble(), smoke.toDouble(), alco.toDouble(), active.toDouble()
@@ -328,7 +600,7 @@ class MainActivity : AppCompatActivity() {
 
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Offline Engine Error: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Assessment could not be completed. Please try again.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -378,13 +650,13 @@ class MainActivity : AppCompatActivity() {
                     }
                 } else {
                     mainHandler.post {
-                        Toast.makeText(this@MainActivity, "Server Error ($code). Falling back to Offline Mode.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "Server unavailable. Falling back to Offline Mode.", Toast.LENGTH_SHORT).show()
                         executeOfflineInference(age, gender, height, weight, apHi, apLo, cholesterol, glucose, smoke, alco, active)
                     }
                 }
             } catch (e: Exception) {
                 mainHandler.post {
-                    Toast.makeText(this@MainActivity, "Online Server Unreachable. Using Offline Mode.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "Server unavailable. Using Offline Mode.", Toast.LENGTH_SHORT).show()
                     executeOfflineInference(age, gender, height, weight, apHi, apLo, cholesterol, glucose, smoke, alco, active)
                 }
             }
@@ -396,22 +668,14 @@ class MainActivity : AppCompatActivity() {
         apHi: Int, apLo: Int, height: Double, weight: Double,
         cholesterol: Int, glucose: Int, active: Int, smoke: Int, age: Double
     ) {
-        if (predClass == 1) {
-            tvRiskTag.text = "ELEVATED POTENTIAL RISK"
-            tvRiskTag.setTextColor(Color.parseColor("#991B1B"))
-            tvRiskTag.setBackgroundColor(Color.parseColor("#FEE2E2"))
-            cardRiskPrimary.setBackgroundColor(Color.parseColor("#FEF2F2"))
-        } else {
-            tvRiskTag.text = "LOWER POTENTIAL RISK"
-            tvRiskTag.setTextColor(Color.parseColor("#065F46"))
-            tvRiskTag.setBackgroundColor(Color.parseColor("#D1FAE5"))
-            cardRiskPrimary.setBackgroundColor(Color.parseColor("#ECFDF5"))
-        }
+        lastComputedProb = prob
+        lastComputedApHi = apHi
+        lastComputedApLo = apLo
+        lastComputedAge = age
 
-        val pct = String.format("%.2f%%", prob * 100)
+        val pct = String.format(Locale.US, "%.2f%%", prob * 100)
         tvProbability.text = pct
 
-        // Update Risk Scale Indicator Position
         val activeBg = R.drawable.bg_scale_active
         val inactiveBg = R.drawable.bg_scale_inactive
 
@@ -427,89 +691,155 @@ class MainActivity : AppCompatActivity() {
 
         when {
             prob < 0.30 -> {
+                lastComputedCategory = "Low Risk"
+                tvRiskTag.text = "LOW POTENTIAL RISK"
+                tvRiskTag.setTextColor(Color.parseColor("#065F46"))
+                tvRiskTag.setBackgroundColor(Color.parseColor("#D1FAE5"))
+                cardRiskPrimary.setBackgroundColor(Color.parseColor("#ECFDF5"))
+
                 vScaleLow.setBackgroundResource(activeBg)
-                tvLblLow.setTextColor(Color.parseColor("#1E3A8A"))
+                tvLblLow.setTextColor(Color.parseColor("#0D9488"))
             }
             prob < 0.50 -> {
+                lastComputedCategory = "Moderate Risk"
+                tvRiskTag.text = "MODERATE POTENTIAL RISK"
+                tvRiskTag.setTextColor(Color.parseColor("#92400E"))
+                tvRiskTag.setBackgroundColor(Color.parseColor("#FEF3C7"))
+                cardRiskPrimary.setBackgroundColor(Color.parseColor("#FFFBEB"))
+
                 vScaleMod.setBackgroundResource(activeBg)
-                tvLblMod.setTextColor(Color.parseColor("#1E3A8A"))
+                tvLblMod.setTextColor(Color.parseColor("#0D9488"))
             }
             prob < 0.75 -> {
+                lastComputedCategory = "Elevated Risk"
+                tvRiskTag.text = "ELEVATED POTENTIAL RISK"
+                tvRiskTag.setTextColor(Color.parseColor("#991B1B"))
+                tvRiskTag.setBackgroundColor(Color.parseColor("#FEE2E2"))
+                cardRiskPrimary.setBackgroundColor(Color.parseColor("#FEF2F2"))
+
                 vScaleElev.setBackgroundResource(activeBg)
-                tvLblElev.setTextColor(Color.parseColor("#1E3A8A"))
+                tvLblElev.setTextColor(Color.parseColor("#0D9488"))
             }
             else -> {
+                lastComputedCategory = "High Risk"
+                tvRiskTag.text = "HIGH POTENTIAL RISK"
+                tvRiskTag.setTextColor(Color.parseColor("#991B1B"))
+                tvRiskTag.setBackgroundColor(Color.parseColor("#FEE2E2"))
+                cardRiskPrimary.setBackgroundColor(Color.parseColor("#FEF2F2"))
+
                 vScaleHigh.setBackgroundResource(activeBg)
-                tvLblHigh.setTextColor(Color.parseColor("#1E3A8A"))
+                tvLblHigh.setTextColor(Color.parseColor("#0D9488"))
             }
         }
 
-        // Snapshot Values
-        tvResAge.text = String.format("%.1f years", age)
+        tvResAge.text = String.format(Locale.US, "%.1f years", age)
         tvResBp.text = "$apHi/$apLo mmHg"
-        
+
         val heightM = height / 100.0
         val bmi = if (heightM > 0) weight / (heightM * heightM) else 22.0
-        tvResBmi.text = String.format("%.1f kg/m²", bmi)
+        tvResBmi.text = String.format(Locale.US, "%.1f kg/m²", bmi)
 
         tvResCholesterol.text = "Level $cholesterol"
         tvResGlucose.text = "Level $glucose"
 
-        // Build Deterministic Contributing Factors & General Health Tips
         val factors = mutableListOf<String>()
-        val tips = mutableListOf<String>()
 
         if (apHi >= 140 || apLo >= 90) {
-            factors.add("• Blood pressure is above the normal range ($apHi/$apLo mmHg)")
-            tips.add("• Monitor your blood pressure regularly and discuss persistent high readings with a healthcare professional.")
+            factors.add("• Elevated Blood Pressure ($apHi/$apLo mmHg)")
         } else if (apHi >= 130 || apLo >= 80) {
-            factors.add("• Blood pressure is in the prehypertension range ($apHi/$apLo mmHg)")
-            tips.add("• Monitor your blood pressure periodically and consider adopting a balanced low-sodium diet.")
+            factors.add("• Prehypertension BP range ($apHi/$apLo mmHg)")
         }
 
         if (cholesterol >= 2) {
-            val cholDesc = if (cholesterol == 3) "significantly elevated" else "elevated"
-            factors.add("• Cholesterol level is $cholDesc")
-            tips.add("• Maintain a balanced diet low in saturated fats and discuss cholesterol management with a healthcare professional.")
+            val cholDesc = if (cholesterol == 3) "Well Above Normal" else "Above Normal"
+            factors.add("• Cholesterol Level ($cholDesc)")
         }
 
         if (glucose >= 2) {
-            factors.add("• Blood glucose level is elevated")
-            tips.add("• Monitor your diet and consult a healthcare provider regarding blood glucose management.")
+            val glucDesc = if (glucose == 3) "Well Above Normal" else "Above Normal"
+            factors.add("• Glucose Level ($glucDesc)")
         }
 
         if (active == 0) {
-            factors.add("• Physical activity is low (< 30 min/day)")
-            tips.add("• Aim for regular moderate physical activity, as appropriate for your health condition.")
+            factors.add("• Physical Inactivity (< 30 min daily activity)")
         }
 
         if (smoke == 1) {
-            factors.add("• Active smoking status reported")
-            tips.add("• Avoid smoking and consider professional support if you want to quit.")
+            factors.add("• Active Smoking Status")
         }
 
         if (bmi >= 25.0) {
-            factors.add(String.format("• BMI is above the recommended range (%.1f kg/m²)", bmi))
-            tips.add("• Focus on sustainable nutrition and regular physical activity rather than rapid weight-loss approaches.")
+            factors.add(String.format(Locale.US, "• Elevated Body Mass Index (%.1f kg/m²)", bmi))
         }
 
         if (age >= 55.0) {
-            factors.add(String.format("• Age demographic factor (%.1f years)", age))
+            factors.add(String.format(Locale.US, "• Age Baseline Factor (%.1f years)", age))
         }
 
         if (factors.isEmpty()) {
-            factors.add("• Blood pressure reading is within normal limits")
-            factors.add("• Cholesterol and glucose levels are within normal limits")
-            factors.add("• Active lifestyle factors reported")
-        }
-
-        if (tips.isEmpty()) {
-            tips.add("• Continue maintaining a balanced lifestyle, regular physical activity, and routine health assessments.")
+            factors.add("• Blood pressure within normal range ($apHi/$apLo mmHg)")
+            factors.add("• Cholesterol and glucose levels normal")
+            factors.add("• Active lifestyle reported")
         }
 
         tvContributingFactors.text = factors.joinToString("\n")
-        tvHealthTips.text = tips.joinToString("\n")
+        showScreen(screenResult, navLblAssess)
+    }
 
-        showScreen(screenResult)
+    private fun loadAndDisplayHistory() {
+        val historyList = HistoryManager.getHistory(this)
+        containerHistoryList.removeAllViews()
+
+        if (historyList.isEmpty()) {
+            tvHistoryEmpty.visibility = View.VISIBLE
+        } else {
+            tvHistoryEmpty.visibility = View.GONE
+            for (rec in historyList) {
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(32, 24, 32, 24)
+                    background = getDrawable(R.drawable.bg_card)
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    params.setMargins(0, 0, 0, 16)
+                    layoutParams = params
+                }
+
+                val headerLayout = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                }
+
+                val titleTv = TextView(this).apply {
+                    text = rec.riskCategory.uppercase()
+                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setTextColor(Color.parseColor("#0D9488"))
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+
+                val probTv = TextView(this).apply {
+                    text = String.format(Locale.US, "%.2f%%", rec.probability * 100)
+                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setTextColor(Color.parseColor("#0F172A"))
+                }
+
+                headerLayout.addView(titleTv)
+                headerLayout.addView(probTv)
+
+                val detailsTv = TextView(this).apply {
+                    text = "BP: ${rec.bpStr}  |  Age: ${rec.ageStr}\nDate: ${rec.date}"
+                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
+                    setTextColor(Color.parseColor("#64748B"))
+                    setPadding(0, 8, 0, 0)
+                }
+
+                card.addView(headerLayout)
+                card.addView(detailsTv)
+                containerHistoryList.addView(card)
+            }
+        }
     }
 }

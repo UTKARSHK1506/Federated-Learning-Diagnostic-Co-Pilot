@@ -1,0 +1,23 @@
+# Android Build & Gradle Outputs
+.gradle/
+build/
+android/build/
+android/app/build/
+android/.gradle/
+*.apk
+*.flat
+*.dex
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# IDE & System Files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
