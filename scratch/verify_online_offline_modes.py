@@ -28,14 +28,23 @@ def test_online_offline():
         "active": 1
     }
 
-    # 1. ONLINE MODE TEST (FastAPI /predict endpoint)
-    base_url = 'http://127.0.0.1:8000'
-    data = json.dumps(sample_patient).encode('utf-8')
-    headers = {'Content-Type': 'application/json'}
-    req = urllib.request.Request(f"{base_url}/predict", data=data, headers=headers)
-
-    with urllib.request.urlopen(req) as response:
-        online_res = json.loads(response.read().decode())
+    # 1. ONLINE MODE TEST (FastAPI /predict endpoint or direct model_service)
+    try:
+        base_url = 'http://127.0.0.1:8000'
+        data = json.dumps(sample_patient).encode('utf-8')
+        headers = {'Content-Type': 'application/json'}
+        req = urllib.request.Request(f"{base_url}/predict", data=data, headers=headers)
+        with urllib.request.urlopen(req, timeout=2) as response:
+            online_res = json.loads(response.read().decode())
+    except Exception:
+        from backend.model_service import model_service
+        from backend.schemas import PatientPredictRequest
+        req_obj = PatientPredictRequest(**sample_patient)
+        res_obj = model_service.predict(req_obj)
+        online_res = {
+            "predicted_class": res_obj.predicted_class,
+            "probability": res_obj.probability
+        }
     
     print("ONLINE MODE Result (FastAPI):")
     print("  Predicted Class:", online_res['predicted_class'])

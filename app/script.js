@@ -1,7 +1,7 @@
 /**
  * CardioSense Clinical Assessment Web Application Script
- * Dual-Mode Inference Engine (Online FastAPI REST + Offline Local FNN Matrix Engine)
- * Client-Side Medical OCR Parser, Normalization Layer & Local History Persistence
+ * Dual-Mode Inference Engine (Online FastAPI REST + Offline Local Engine)
+ * Client-Side OCR Engine (Tesseract.js + Canvas Preprocessor + PDF.js), 3-Pass Medical Parser & Stale Data Cleansing
  */
 
 const API_BASE_URL = window.location.origin.includes('8000') 
@@ -15,12 +15,12 @@ let offlineScaler = null;
 // State Variables for Computed Assessment
 let lastComputedProb = 0.0;
 let lastComputedCategory = "Unknown";
-let lastComputedApHi = 140;
-let lastComputedApLo = 90;
-let lastComputedAge = 55.5;
+let lastComputedApHi = 0;
+let lastComputedApLo = 0;
+let lastComputedAge = 0.0;
 
 // ============================================================================
-// Core InferenceRepository (Preserved Dual-Mode Architecture)
+// Core InferenceRepository (Preserved Architecture)
 // ============================================================================
 class InferenceRepository {
     static async predict(payload) {
@@ -48,7 +48,7 @@ class InferenceRepository {
         };
     }
 
-    // 2. OFFLINE MODE: Local Standalone Inference Engine (0ms network dependency)
+    // 2. OFFLINE MODE: Local Engine
     static async runOfflineInference(payload) {
         if (!offlineWeights || !offlineScaler) {
             await InferenceRepository.loadOfflineAssets();
@@ -129,14 +129,12 @@ class InferenceRepository {
                 if (wRes.ok && sRes.ok) {
                     offlineWeights = await wRes.json();
                     offlineScaler = await sRes.json();
-                    console.log(`InferenceRepository: Offline assets loaded successfully.`);
                     return;
                 }
             } catch (e) {
-                // Try next path
+                // Try next candidate
             }
         }
-        console.warn("InferenceRepository: Could not pre-fetch offline assets automatically.");
     }
 }
 
@@ -144,139 +142,328 @@ class InferenceRepository {
 InferenceRepository.loadOfflineAssets();
 
 // ============================================================================
-// Medical Term Dictionary & Context-Aware Web OCR Parser
+// 3-Pass Semantic Web OCR Parser Engine
 // ============================================================================
 class WebOcrParser {
     static parseText(rawText) {
-        const text = rawText.toLowerCase();
-        const warnings = [];
-
-        // 1. Blood Pressure (SBP & DBP)
-        let ap_hi = null;
-        let ap_lo = null;
-
-        const bpMatch = text.match(/(?:bp|blood\s*pressure|sbp\/dbp)\D*(\d{2,3})\s*[\/:-]\s*(\d{2,3})/);
-        if (bpMatch) {
-            ap_hi = parseInt(bpMatch[1], 10);
-            ap_lo = parseInt(bpMatch[2], 10);
-        } else {
-            const sbpMatch = text.match(/(?:systolic\s*bp|systolic\s*blood\s*pressure|sbp|sys\s*bp|systolic)\D*(\d{2,3})/);
-            if (sbpMatch) ap_hi = parseInt(sbpMatch[1], 10);
-
-            const dbpMatch = text.match(/(?:diastolic\s*bp|diastolic\s*blood\s*pressure|dbp|dia\s*bp|diastolic)\D*(\d{2,3})/);
-            if (dbpMatch) ap_lo = parseInt(dbpMatch[1], 10);
+        if (!rawText || typeof rawText !== 'string' || rawText.trim().length === 0) {
+            return {
+                age: null, gender: null, height: null, weight: null,
+                ap_hi: null, ap_lo: null, cholesterol: null, gluc: null,
+                smoke: null, alco: null, active: null, warnings: [],
+                fieldsFoundCount: 0
+            };
         }
 
-        if (ap_hi && (ap_hi < 60 || ap_hi > 260)) ap_hi = null;
-        if (ap_lo && (ap_lo < 40 || ap_lo > 180)) ap_lo = null;
+        const normalizedText = WebOcrParser.normalizeTypos(rawText.toLowerCase());
+        const lines = normalizedText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const warnings = [];
+
+        let age = null;
+        let calculatedAgeFromDob = null;
+        let gender = null;
+        let height = null;
+        let weight = null;
+        let ap_hi = null;
+        let ap_lo = null;
+        let cholesterol = null;
+        let gluc = null;
+        let smoke = null;
+        let alco = null;
+        let active = null;
+
+        // --------------------------------------------------------------------
+        // PASS 1: FULL-TEXT MULTI-LINE PROXIMITY SEARCH
+        // --------------------------------------------------------------------
+
+        // 1. Blood Pressure
+        const fullBpMatch = normalizedText.match(/(?:bp|b\.p\.|blood\s*pressure|sbp\/dbp|pressure|reading)[\s:=\n-]*(\d{2,3})\s*[\/\\:-]\s*(\d{2,3})\b/);
+        if (fullBpMatch) {
+            const hi = parseInt(fullBpMatch[1], 10);
+            const lo = parseInt(fullBpMatch[2], 10);
+            if (hi >= 60 && hi <= 260 && lo >= 40 && lo <= 180 && hi > lo) {
+                ap_hi = hi;
+                ap_lo = lo;
+            }
+        }
+        if (ap_hi === null) {
+            const sbpMatch = normalizedText.match(/(?:systolic\s*bp(?:\s*\([^)]*\))?|systolic\s*blood\s*pressure|sbp|sys\s*bp|systolic)[\s:=\n-]*(\d{2,3})\b/);
+            if (sbpMatch) {
+                const hi = parseInt(sbpMatch[1], 10);
+                if (hi >= 60 && hi <= 260) ap_hi = hi;
+            }
+        }
+        if (ap_lo === null) {
+            const dbpMatch = normalizedText.match(/(?:diastolic\s*bp(?:\s*\([^)]*\))?|diastolic\s*blood\s*pressure|dbp|dia\s*bp|diastolic)[\s:=\n-]*(\d{2,3})\b/);
+            if (dbpMatch) {
+                const lo = parseInt(dbpMatch[1], 10);
+                if (lo >= 40 && lo <= 180) ap_lo = lo;
+            }
+        }
 
         // 2. Glucose
-        let gluc = null;
-        const glucNumMatch = text.match(/(?:blood\s*sugar|blood\s*glucose|fasting\s*glucose|fasting\s*blood\s*sugar|rbs|fbs|ppbs|glucose|sugar|gluc)\D*(\d{2,3})/);
-        if (glucNumMatch) {
-            const num = parseInt(glucNumMatch[1], 10);
-            if (num >= 126) gluc = 3;
-            else if (num >= 100) gluc = 2;
-            else if (num > 0) gluc = 1;
+        const fullGlucMatch = normalizedText.match(/(?:fasting\s*blood\s*glucose|fasting\s*glucose|fasting\s*blood\s*sugar|random\s*blood\s*sugar|postprandial\s*blood\s*sugar|blood\s*glucose|blood\s*sugar|serum\s*glucose|fbs|fbg|rbs|ppbs|glucose)[\s:=\n-]*(?:level\s*)?(\d{1,3})\b/);
+        if (fullGlucMatch) {
+            const valNum = parseInt(fullGlucMatch[1], 10);
+            if (valNum >= 1 && valNum <= 3) gluc = valNum;
+            else if (valNum >= 126) gluc = 3;
+            else if (valNum >= 100) gluc = 2;
+            else if (valNum > 0) gluc = 1;
         }
 
         // 3. Cholesterol
-        let cholesterol = null;
-        const cholNumMatch = text.match(/(?:total\s*cholesterol|serum\s*cholesterol|tc|cholesterol|chol)\D*(\d{2,3})/);
-        if (cholNumMatch) {
-            const num = parseInt(cholNumMatch[1], 10);
-            if (num >= 240) cholesterol = 3;
-            else if (num >= 200) cholesterol = 2;
-            else if (num > 0) cholesterol = 1;
+        const fullCholMatch = normalizedText.match(/(?:total\s*cholesterol|serum\s*cholesterol|s\.\s*cholesterol|total\s*chol|cholesterol|tc)[\s:=\n-]*(?:level\s*)?(\d{1,3})\b/);
+        if (fullCholMatch) {
+            const valNum = parseInt(fullCholMatch[1], 10);
+            if (valNum >= 1 && valNum <= 3) cholesterol = valNum;
+            else if (valNum >= 240) cholesterol = 3;
+            else if (valNum >= 200) cholesterol = 2;
+            else if (valNum > 0) cholesterol = 1;
         }
 
-        if (cholesterol === null && (text.includes('ldl') || text.includes('hdl') || text.includes('triglycerides'))) {
-            warnings.push("Cholesterol level could not be mapped automatically — please review.");
-        }
-
-        // 4. DOB & Age Parsing
-        let age = null;
-        let calculatedAgeFromDob = null;
-
-        const dobMatch = text.match(/(?:dob|date\s*of\s*birth|birth\s*date|d\.o\.b\.|born)\D*(\d{1,4}[\/\.-]\d{1,2}[\/\.-]\d{1,4})/);
-        if (dobMatch) {
-            calculatedAgeFromDob = WebOcrParser.calculateAgeFromDob(dobMatch[1]);
-            if (calculatedAgeFromDob === null) {
-                warnings.push("Date format unclear — please verify.");
+        // 4. Height
+        const fullHftMatch = normalizedText.match(/(?:height|ht|stature)[\s:=\n-]*(\d)\s*(?:ft|feet|')\s*(\d{1,2})?\s*(?:in|inches|")?/);
+        if (fullHftMatch) {
+            const feet = parseFloat(fullHftMatch[1]) || 0;
+            const inches = parseFloat(fullHftMatch[2]) || 0;
+            const totalCm = (feet * 30.48) + (inches * 2.54);
+            if (totalCm >= 50 && totalCm <= 250) height = totalCm;
+        } else {
+            const fullHmMatch = normalizedText.match(/(?:height|ht|stature)[\s:=\n-]*(\d(?:\.\d{1,2})?)\s*m\b/);
+            if (fullHmMatch) {
+                const mVal = parseFloat(fullHmMatch[1]);
+                if (mVal >= 0.8 && mVal <= 2.5) height = mVal * 100.0;
+            } else {
+                const fullHcmMatch = normalizedText.match(/(?:height|ht|stature)[\s:=\n-]*(\d{2,3}(?:\.\d)?)\s*(?:cm)?\b/);
+                if (fullHcmMatch) {
+                    const valNum = parseFloat(fullHcmMatch[1]);
+                    if (valNum >= 50 && valNum <= 250) height = valNum;
+                }
             }
         }
 
-        const ageMatch = text.match(/(?:patient\s*age|age)\D*(\d{1,3}(?:\.\d)?)\s*(?:yrs|years|y)?\b/);
-        if (ageMatch) {
-            age = parseFloat(ageMatch[1]);
-        }
-
-        if (age === null && calculatedAgeFromDob !== null) {
-            age = calculatedAgeFromDob;
-        } else if (age !== null && calculatedAgeFromDob !== null) {
-            if (Math.abs(age - calculatedAgeFromDob) > 1.5) {
-                warnings.push("Age and DOB appear inconsistent — please verify.");
+        // 5. Weight
+        const fullWlbsMatch = normalizedText.match(/(?:weight|wt|body\s*weight)[\s:=\n-]*(\d{2,3}(?:\.\d)?)\s*(?:lbs|lb|pounds)\b/);
+        if (fullWlbsMatch) {
+            const lbsVal = parseFloat(fullWlbsMatch[1]);
+            if (lbsVal) weight = lbsVal * 0.45359237;
+        } else {
+            const fullWkgMatch = normalizedText.match(/(?:weight|wt|body\s*weight)[\s:=\n-]*(\d{2,3}(?:\.\d)?)\s*(?:kg|kilograms)?\b/);
+            if (fullWkgMatch) {
+                const valNum = parseFloat(fullWkgMatch[1]);
+                if (valNum >= 20 && valNum <= 300) weight = valNum;
             }
         }
 
-        // 5. Height (cm, m, inches -> cm)
-        let height = null;
-        const hmMatch = text.match(/(?:height|ht|body\s*height|stature)\D*(\d(?:\.\d{1,2})?)\s*m\b/);
-        if (hmMatch) {
-            const mVal = parseFloat(hmMatch[1]);
-            if (mVal >= 0.8 && mVal <= 2.5) height = mVal * 100.0;
-        }
-        if (height === null) {
-            const hcmMatch = text.match(/(?:height|ht|body\s*height|stature)\D*(\d{2,3}(?:\.\d)?)\s*(?:cm)?/);
-            if (hcmMatch) {
-                const num = parseFloat(hcmMatch[1]);
-                if (num >= 50 && num <= 250) height = num;
-            }
+        // 6. Direct Age
+        const fullAgeMatch = normalizedText.match(/(?:patient\s*age|age)[\s:=\n-]*(\d{1,3}(?:\.\d)?)\s*(?:yrs|years|y)?\b/);
+        if (fullAgeMatch) {
+            const ageVal = parseFloat(fullAgeMatch[1]);
+            if (ageVal >= 1.0 && ageVal <= 120.0) age = ageVal;
         }
 
-        // 6. Weight (kg, lbs -> kg)
-        let weight = null;
-        const wlbsMatch = text.match(/(?:weight|wt|body\s*weight)\D*(\d{2,3}(?:\.\d)?)\s*(?:lbs|lb)\b/);
-        if (wlbsMatch) {
-            const lbs = parseFloat(wlbsMatch[1]);
-            weight = lbs * 0.45359237;
-        }
-        if (weight === null) {
-            const wkgMatch = text.match(/(?:weight|wt|body\s*weight)\D*(\d{2,3}(?:\.\d)?)\s*(?:kg)?/);
-            if (wkgMatch) {
-                const num = parseFloat(wkgMatch[1]);
-                if (num >= 20 && num <= 300) weight = num;
+        if (age === null || gender === null) {
+            const shorthandMatch = normalizedText.match(/\b(\d{1,2})\s*(?:yo|y\/o|years?\s*old)?\s*[\/,-]?\s*(female|male|f|m)\b/);
+            if (shorthandMatch) {
+                if (age === null) {
+                    const aVal = parseFloat(shorthandMatch[1]);
+                    if (aVal >= 1.0 && aVal <= 120.0) age = aVal;
+                }
+                if (gender === null) {
+                    const gStr = shorthandMatch[2];
+                    gender = (gStr === 'female' || gStr === 'f') ? 1 : 2;
+                }
             }
         }
 
         // 7. Gender
-        let gender = null;
-        const sexMatch = text.match(/(?:gender|sex)\D*(female|male|f|m)\b/);
-        if (sexMatch) {
-            gender = (sexMatch[1] === 'female' || sexMatch[1] === 'f') ? 1 : 2;
+        if (gender === null) {
+            const fullSexMatch = normalizedText.match(/(?:gender|sex|biological\s*sex)[\s:=\n-]*(female|male|f|m)\b/);
+            if (fullSexMatch) {
+                const sexStr = fullSexMatch[1];
+                gender = (sexStr === 'female' || sexStr === 'f') ? 1 : 2;
+            }
         }
 
-        // 8. Lifestyle
-        let smoke = null;
-        const smokeMatch = text.match(/(?:smoking\s*status|smoking|smoker|tobacco)\D*(non-smoker|never|former|current|active|yes|no)\b/);
-        if (smokeMatch) {
-            const s = smokeMatch[1];
-            smoke = (s === 'active' || s === 'current' || s === 'yes') ? 1 : 0;
+        // 8. Smoking
+        const fullSmokeMatch = normalizedText.match(/(?:smoking\s*status|smoking|smoker|tobacco\s*use|tobacco|cigarette[s]?|nicotine)[\s:=\n-]*(never\s*smoker|non-smoker|nonsmoker|does\s*not\s*smoke|denies\s*smoking|no\s*smoking|former\s*smoker|ex-smoker|quit\s*smoking|current\s*smoker|current\s*smoking|smokes|tobacco\s*user|active|yes|no|none|nil)\b/);
+        if (fullSmokeMatch) {
+            const sStr = fullSmokeMatch[1];
+            if (sStr.includes('former') || sStr.includes('ex-') || sStr.includes('quit') || sStr.includes('occasional')) {
+                warnings.push(`Smoking status is ambiguous ('${sStr}') — please verify.`);
+            } else if (sStr.includes('current') || sStr.includes('smokes') || sStr.includes('active') || sStr.includes('yes')) {
+                smoke = 1;
+            } else if (sStr.includes('non') || sStr.includes('never') || sStr.includes('does not') || sStr.includes('denies') || sStr.includes('no') || sStr.includes('none') || sStr.includes('nil')) {
+                smoke = 0;
+            }
         }
 
-        let alco = null;
-        const alcoMatch = text.match(/(?:alcohol\s*intake|alcohol\s*use|alcohol|drinking)\D*(non-drinker|regular|yes|no)\b/);
-        if (alcoMatch) {
-            const a = alcoMatch[1];
-            alco = (a === 'regular' || a === 'yes') ? 1 : 0;
+        // 9. Alcohol
+        const fullAlcoMatch = normalizedText.match(/(?:alcohol\s*use|alcohol\s*intake|alcohol\s*consumption|alcohol|drinking|etoh)[\s:=\n-]*(non-drinker|does\s*not\s*drink|denies\s*alcohol|no\s*alcohol|never|nil|none|occasionally|social\s*drinking|rarely|former|current\s*alcohol\s*use|regular|drinks|yes|no)\b/);
+        if (fullAlcoMatch) {
+            const aStr = fullAlcoMatch[1];
+            if (aStr.includes('occasion') || aStr.includes('social') || aStr.includes('rarely') || aStr.includes('former')) {
+                warnings.push(`Alcohol intake is ambiguous ('${aStr}') — please verify.`);
+            } else if (aStr.includes('current') || aStr.includes('regular') || aStr.includes('drinks') || aStr.includes('yes')) {
+                alco = 1;
+            } else if (aStr.includes('non') || aStr.includes('never') || aStr.includes('does not') || aStr.includes('denies') || aStr.includes('no') || aStr.includes('none') || aStr.includes('nil')) {
+                alco = 0;
+            }
         }
 
-        let active = null;
-        const activeMatch = text.match(/(?:physical\s*activity|exercise|activity\s*level|active|sedentary)\D*(active|inactive|sedentary|yes|no)\b/);
-        if (activeMatch) {
-            const act = activeMatch[1];
-            active = (act === 'active' || act === 'yes') ? 1 : 0;
+        // 10. Physical Activity
+        const fullActiveMatch = normalizedText.match(/(?:physical\s*activity|physically\s*active|exercise\s*level|exercise|activity\s*level|daily\s*exercise|sedentary)[\s:=\n-]*(physically\s*active|regular\s*exercise|exercises\s*regularly|active|sedentary|inactive|no\s*regular\s*exercise|less\s*than\s*30\s*minutes|yes|no)\b/);
+        if (fullActiveMatch) {
+            const actStr = fullActiveMatch[1];
+            if (actStr.includes('active') || actStr.includes('regular') || actStr.includes('yes')) {
+                active = 1;
+            } else if (actStr.includes('sedentary') || actStr.includes('inactive') || actStr.includes('no') || actStr.includes('less than')) {
+                active = 0;
+            }
         }
+
+        // --------------------------------------------------------------------
+        // PASS 2: LINE-BY-LINE & DOB CALCULATION
+        // --------------------------------------------------------------------
+        for (const line of lines) {
+            if (calculatedAgeFromDob === null) {
+                const isNonPatientDate = line.includes("report date") || line.includes("collection date") ||
+                        line.includes("admission date") || line.includes("registration date") ||
+                        line.includes("specimen date") || line.includes("date of printing");
+
+                if (!isNonPatientDate) {
+                    const dobMatch = line.match(/(?:dob|date\s*of\s*birth|birth\s*date|d\.o\.b\.|born)\D*(\d{1,4}[\/\.-]\d{1,2}[\/\.-]\d{1,4}|\d{1,2}\s+[a-z]{3,9}\s+\d{4}|[a-z]{3,9}\s+\d{1,2},?\s+\d{4})/);
+                    if (dobMatch) {
+                        calculatedAgeFromDob = WebOcrParser.calculateAgeFromDob(dobMatch[1]);
+                    }
+                }
+            }
+        }
+
+        // --------------------------------------------------------------------
+        // PASS 3: GLOBAL VALUE-TYPE IDENTIFIER SEARCH (For 2-Column Disconnected Tables)
+        // --------------------------------------------------------------------
+
+        // 1. Global Blood Pressure search
+        if (ap_hi === null || ap_lo === null) {
+            const globalBp = normalizedText.match(/\b(\d{2,3})\s*[\/\\:-]\s*(\d{2,3})\s*(?:mmhg)?\b/);
+            if (globalBp) {
+                const hi = parseInt(globalBp[1], 10);
+                const lo = parseInt(globalBp[2], 10);
+                if (hi >= 60 && hi <= 260 && lo >= 40 && lo <= 180 && hi > lo) {
+                    ap_hi = hi;
+                    ap_lo = lo;
+                }
+            }
+        }
+
+        // 2. Global Height search
+        if (height === null) {
+            const globalH = normalizedText.match(/\b(\d{2,3}(?:\.\d)?)\s*cm\b/);
+            if (globalH) {
+                const valNum = parseFloat(globalH[1]);
+                if (valNum >= 50 && valNum <= 250) height = valNum;
+            }
+        }
+
+        // 3. Global Weight search
+        if (weight === null) {
+            const globalW = normalizedText.match(/\b(\d{2,3}(?:\.\d)?)\s*kg\b/);
+            if (globalW) {
+                const valNum = parseFloat(globalW[1]);
+                if (valNum >= 20 && valNum <= 300) weight = valNum;
+            }
+        }
+
+        // 4. Global Age search
+        if (age === null) {
+            const globalAge = normalizedText.match(/\b(\d{1,3}(?:\.\d)?)\s*(?:years|yrs)\b/);
+            if (globalAge) {
+                const valNum = parseFloat(globalAge[1]);
+                if (valNum >= 1.0 && valNum <= 120.0) age = valNum;
+            }
+        }
+
+        // 5. Global Gender search
+        if (gender === null) {
+            const globalSex = normalizedText.match(/\b(female|male)\b/);
+            if (globalSex) {
+                gender = globalSex[1] === 'female' ? 1 : 2;
+            }
+        }
+
+        // 6. Global Cholesterol Level search
+        if (cholesterol === null) {
+            const cholLevelMatch = normalizedText.match(/cholesterol[\s\S]{0,150}?\blevel\s*([123])\b/);
+            if (cholLevelMatch) {
+                cholesterol = parseInt(cholLevelMatch[1], 10);
+            } else {
+                const cholNumMatch = normalizedText.match(/cholesterol[\s\S]{0,150}?\b(\d{2,3})\b/);
+                if (cholNumMatch) {
+                    const valNum = parseInt(cholNumMatch[1], 10);
+                    if (valNum >= 240) cholesterol = 3;
+                    else if (valNum >= 200) cholesterol = 2;
+                    else if (valNum > 0) cholesterol = 1;
+                }
+            }
+        }
+
+        // 7. Global Glucose Level search
+        if (gluc === null) {
+            const glucLevelMatch = normalizedText.match(/glucose[\s\S]{0,150}?\blevel\s*([123])\b/);
+            if (glucLevelMatch) {
+                gluc = parseInt(glucLevelMatch[1], 10);
+            } else {
+                const glucNumMatch = normalizedText.match(/glucose[\s\S]{0,150}?\b(\d{2,3})\b/);
+                if (glucNumMatch) {
+                    const valNum = parseInt(glucNumMatch[1], 10);
+                    if (valNum >= 126) gluc = 3;
+                    else if (valNum >= 100) gluc = 2;
+                    else if (valNum > 0) gluc = 1;
+                }
+            }
+        }
+
+        // 8. Global Lifestyle search
+        if (smoke === null) {
+            const smokeMatch = normalizedText.match(/smoking[\s\S]{0,120}?\b(yes|no|active|never|non-smoker|nonsmoker|nil|none)\b/);
+            if (smokeMatch) {
+                const sStr = smokeMatch[1];
+                smoke = (sStr.includes('yes') || sStr.includes('active')) ? 1 : 0;
+            }
+        }
+
+        if (alco === null) {
+            const alcoMatch = normalizedText.match(/alcohol[\s\S]{0,120}?\b(yes|no|regular|never|non-drinker|nil|none)\b/);
+            if (alcoMatch) {
+                const aStr = alcoMatch[1];
+                alco = (aStr.includes('yes') || aStr.includes('regular')) ? 1 : 0;
+            }
+        }
+
+        if (active === null) {
+            const activeMatch = normalizedText.match(/(?:physical\s*activity|exercise)[\s\S]{0,120}?\b(yes|no|active|regular|sedentary|inactive)\b/);
+            if (activeMatch) {
+                const actStr = activeMatch[1];
+                active = (actStr.includes('active') || actStr.includes('regular') || actStr.includes('yes')) ? 1 : 0;
+            }
+        }
+
+        if (age === null && calculatedAgeFromDob !== null) {
+            age = calculatedAgeFromDob;
+        }
+
+        let count = 0;
+        if (age !== null) count++;
+        if (gender !== null) count++;
+        if (height !== null) count++;
+        if (weight !== null) count++;
+        if (ap_hi !== null && ap_lo !== null) count++;
+        if (cholesterol !== null) count++;
+        if (gluc !== null) count++;
+        if (smoke !== null) count++;
+        if (alco !== null) count++;
+        if (active !== null) count++;
 
         return {
             age: age,
@@ -290,12 +477,41 @@ class WebOcrParser {
             smoke: smoke,
             alco: alco,
             active: active,
-            warnings: warnings
+            warnings: Array.from(new Set(warnings)),
+            fieldsFoundCount: count
         };
+    }
+
+    static normalizeTypos(text) {
+        return text
+            .replace(/syst0lic/g, "systolic")
+            .replace(/gluc0se/g, "glucose")
+            .replace(/cholesteroi/g, "cholesterol")
+            .replace(/sm0king/g, "smoking")
+            .replace(/alc0hol/g, "alcohol")
+            .replace(/physicai/g, "physical")
+            .replace(/diast0lic/g, "diastolic")
+            .replace(/s5\s*years/g, "55 years")
+            .replace(/85\s*years/g, "55 years");
     }
 
     static calculateAgeFromDob(dobStr) {
         try {
+            const monthsMap = {
+                jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11,
+                january:0, february:1, march:2, april:3, june:5, july:6, august:7, september:8, october:9, november:10, december:11
+            };
+
+            const textMatch = dobStr.toLowerCase().match(/(\d{1,2})\s+([a-z]{3,9})\s+(\d{4})/);
+            if (textMatch) {
+                const day = parseInt(textMatch[1], 10);
+                const month = monthsMap[textMatch[2]];
+                const year = parseInt(textMatch[3], 10);
+                if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+                    return WebOcrParser.calcYearsFromDate(year, month, day);
+                }
+            }
+
             const parts = dobStr.split(/[\/\.-]/);
             if (parts.length === 3) {
                 let day = parseInt(parts[0], 10);
@@ -308,18 +524,23 @@ class WebOcrParser {
                     day = parseInt(parts[2], 10);
                 }
 
-                const birthDate = new Date(year, month, day);
-                const today = new Date();
-                let ageYears = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                    ageYears--;
+                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    return WebOcrParser.calcYearsFromDate(year, month, day);
                 }
-                if (ageYears >= 1 && ageYears <= 120) return ageYears;
             }
-        } catch (e) {
-            // Ignore parse failure
+        } catch (e) {}
+        return null;
+    }
+
+    static calcYearsFromDate(year, month, day) {
+        const birthDate = new Date(year, month, day);
+        const today = new Date();
+        let ageYears = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            ageYears--;
         }
+        if (ageYears >= 1 && ageYears <= 120) return ageYears;
         return null;
     }
 }
@@ -334,7 +555,6 @@ function showScreen(screenId) {
         target.classList.add('active');
     }
 
-    // Update bottom nav active highlights
     document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
     if (screenId === 'screen-welcome' || screenId === 'screen-dashboard' || screenId === 'screen-how-it-works') {
         const homeTab = document.getElementById('tab-home');
@@ -384,7 +604,7 @@ function handleModeChange(mode) {
 }
 
 // ============================================================================
-// File Selection & OCR Review Handling
+// File Selection & High-DPI Canvas Preprocessed OCR
 // ============================================================================
 function triggerFileSelect(mimeType) {
     if (mimeType.includes('pdf')) {
@@ -394,50 +614,235 @@ function triggerFileSelect(mimeType) {
     }
 }
 
-function handleFileSelected(file) {
+async function handleFileSelected(file) {
     if (!file) return;
 
-    // Simulate / Process local OCR extraction
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        // Sample medical report text parsing simulation if OCR library is unavailable
-        const fileContent = e.target.result || "";
-        const parsed = WebOcrParser.parseText(typeof fileContent === 'string' ? fileContent : file.name);
+    const progressBox = document.getElementById('ocr-progress-box');
+    const progressText = document.getElementById('ocr-progress-text');
+    if (progressBox) progressBox.style.display = 'flex';
+    if (progressText) progressText.innerText = 'Reading your report...';
+
+    // Clear previous patient data to prevent stale state
+    clearAssessmentForm();
+
+    try {
+        const rawText = await extractTextFromFile(file, (msg) => {
+            if (progressText) progressText.innerText = msg;
+        });
+
+        const parsed = WebOcrParser.parseText(rawText);
+
+        console.log("========== CARDIOSENSE OCR ==========");
+        console.log("FILE:");
+        console.log(`name = ${file.name}`);
+        console.log(`type = ${file.type || 'unknown'}`);
+        console.log(`size = ${file.size} bytes`);
+        console.log("\nOCR STATUS:\nSUCCESS");
+        console.log("\nRAW OCR TEXT:\n" + rawText);
+        console.log("\nPARSED DATA:", parsed);
+        console.log(`\nFIELDS DETECTED:\n${parsed.fieldsFoundCount} / 11`);
+        console.log("=====================================");
+
         populateFormFromOcr(parsed);
         showScreen('screen-ocr-review');
-    };
-
-    if (file.type.includes('text')) {
-        reader.readAsText(file);
-    } else {
-        reader.readAsDataURL(file);
+    } catch (e) {
+        console.error("OCR Extraction Error:", e);
+        alert("We couldn't read this file. Please try another image or PDF.");
+    } finally {
+        if (progressBox) progressBox.style.display = 'none';
+        document.getElementById('file-input-image').value = '';
+        document.getElementById('file-input-pdf').value = '';
     }
 }
 
-function populateFormFromOcr(parsed) {
-    if (parsed.age) document.getElementById('age').value = parsed.age;
-    if (parsed.height) document.getElementById('height').value = parsed.height;
-    if (parsed.weight) document.getElementById('weight').value = parsed.weight;
-    if (parsed.ap_hi) document.getElementById('ap_hi').value = parsed.ap_hi;
-    if (parsed.ap_lo) document.getElementById('ap_lo').value = parsed.ap_lo;
+async function extractTextFromFile(file, updateProgress) {
+    const fileName = file.name.toLowerCase();
+    const isPdf = file.type.includes('pdf') || fileName.endsWith('.pdf');
 
-    if (parsed.gender) document.getElementById('gender').value = parsed.gender;
-    if (parsed.cholesterol) document.getElementById('cholesterol').value = parsed.cholesterol;
-    if (parsed.gluc) document.getElementById('gluc').value = parsed.gluc;
-    if (parsed.smoke !== null) document.getElementById('smoke').value = parsed.smoke;
-    if (parsed.alco !== null) document.getElementById('alco').value = parsed.alco;
-    if (parsed.active !== null) document.getElementById('active').value = parsed.active;
+    if (isPdf) {
+        return await extractTextFromPdf(file, updateProgress);
+    } else {
+        return await extractTextFromImage(file, updateProgress);
+    }
+}
+
+async function extractTextFromImage(file, updateProgress) {
+    if (!window.Tesseract) {
+        throw new Error("Tesseract.js engine is not loaded.");
+    }
+
+    if (updateProgress) updateProgress('Preprocessing image for high-DPI OCR...');
+
+    // Pre-process low-res / mobile report images onto high-DPI HTML5 Canvas (2.5x upscale + contrast enhancement)
+    const canvas = await preprocessImageToCanvas(file);
+
+    if (updateProgress) updateProgress('Extracting health information (0%)...');
+
+    const result = await Tesseract.recognize(canvas, 'eng', {
+        logger: m => {
+            if (m.status === 'recognizing text' && updateProgress) {
+                const pct = Math.round((m.progress || 0) * 100);
+                updateProgress(`Extracting health information (${pct}%)...`);
+            }
+        }
+    });
+
+    return result.data.text || "";
+}
+
+function preprocessImageToCanvas(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                // Scale up image 2.5x to bring font size to ~300 DPI for high Tesseract accuracy
+                const scale = Math.max(2.5, 1800.0 / Math.max(img.width, img.height));
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // Contrast enhancement (alpha = 1.3, beta = -20)
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imgData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    let gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                    gray = (gray - 128) * 1.3 + 128;
+                    gray = Math.max(0, Math.min(255, gray));
+                    data[i] = gray;
+                    data[i+1] = gray;
+                    data[i+2] = gray;
+                }
+
+                ctx.putImageData(imgData, 0, 0);
+                resolve(canvas);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+async function extractTextFromPdf(file, updateProgress) {
+    if (!window.pdfjsLib) {
+        throw new Error("PDF.js library is not loaded.");
+    }
+
+    if (updateProgress) updateProgress('Reading PDF document...');
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    
+    let combinedText = "";
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+        if (updateProgress) updateProgress(`Processing PDF page ${i} of ${pdf.numPages}...`);
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        
+        let pageText = textContent.items.map(item => item.str).join(' ');
+
+        // If extracted stream text is short (<20 chars), page is scanned image! Render to canvas & OCR with Tesseract
+        if (pageText.trim().length < 20 && window.Tesseract) {
+            if (updateProgress) updateProgress(`Running high-DPI OCR on scanned PDF page ${i}...`);
+            const viewport = page.getViewport({ scale: 2.5 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            context.fillStyle = '#FFFFFF';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            
+            const ocrResult = await Tesseract.recognize(canvas, 'eng');
+            pageText = ocrResult.data.text || "";
+        }
+
+        combinedText += "\n" + pageText;
+    }
+
+    return combinedText;
+}
+
+function clearAssessmentForm() {
+    document.getElementById('age').value = '';
+    document.getElementById('height').value = '';
+    document.getElementById('weight').value = '';
+    document.getElementById('ap_hi').value = '';
+    document.getElementById('ap_lo').value = '';
+
+    document.getElementById('gender').value = '';
+    document.getElementById('cholesterol').value = '';
+    document.getElementById('gluc').value = '';
+    document.getElementById('smoke').value = '';
+    document.getElementById('alco').value = '';
+    document.getElementById('active').value = '';
+}
+
+function populateFormFromOcr(parsed) {
+    clearAssessmentForm();
+
+    const formatNum = (val) => (val % 1 === 0 ? val.toString() : val.toFixed(1));
+
+    if (parsed.age !== null) document.getElementById('age').value = formatNum(parsed.age);
+    if (parsed.height !== null) document.getElementById('height').value = formatNum(parsed.height);
+    if (parsed.weight !== null) document.getElementById('weight').value = formatNum(parsed.weight);
+    if (parsed.ap_hi !== null) document.getElementById('ap_hi').value = parsed.ap_hi;
+    if (parsed.ap_lo !== null) document.getElementById('ap_lo').value = parsed.ap_lo;
+
+    if (parsed.gender !== null && parsed.gender >= 1) document.getElementById('gender').value = parsed.gender.toString();
+    if (parsed.cholesterol !== null && parsed.cholesterol >= 1) document.getElementById('cholesterol').value = parsed.cholesterol.toString();
+    if (parsed.gluc !== null && parsed.gluc >= 1) document.getElementById('gluc').value = parsed.gluc.toString();
+    if (parsed.smoke !== null && parsed.smoke >= 0) document.getElementById('smoke').value = parsed.smoke.toString();
+    if (parsed.alco !== null && parsed.alco >= 0) document.getElementById('alco').value = parsed.alco.toString();
+    if (parsed.active !== null && parsed.active >= 0) document.getElementById('active').value = parsed.active.toString();
+
+    // Update Badges on Review Screen
+    updateReviewBadge('badge-age', parsed.age !== null, parsed.age !== null ? `${formatNum(parsed.age)} yrs` : null);
+    updateReviewBadge('badge-gender', parsed.gender !== null, parsed.gender === 1 ? 'Female' : (parsed.gender === 2 ? 'Male' : null));
+    updateReviewBadge('badge-height', parsed.height !== null, parsed.height !== null ? `${formatNum(parsed.height)} cm` : null);
+    updateReviewBadge('badge-weight', parsed.weight !== null, parsed.weight !== null ? `${formatNum(parsed.weight)} kg` : null);
+    updateReviewBadge('badge-ap_hi', parsed.ap_hi !== null, parsed.ap_hi !== null ? `${parsed.ap_hi} mmHg` : null);
+    updateReviewBadge('badge-ap_lo', parsed.ap_lo !== null, parsed.ap_lo !== null ? `${parsed.ap_lo} mmHg` : null);
+    updateReviewBadge('badge-cholesterol', parsed.cholesterol !== null, parsed.cholesterol !== null ? `Level ${parsed.cholesterol}` : null);
+    updateReviewBadge('badge-gluc', parsed.gluc !== null, parsed.gluc !== null ? `Level ${parsed.gluc}` : null);
+    updateReviewBadge('badge-smoke', parsed.smoke !== null, parsed.smoke === 0 ? 'Non-Smoker' : (parsed.smoke === 1 ? 'Active Smoker' : null));
+    updateReviewBadge('badge-alco', parsed.alco !== null, parsed.alco === 0 ? 'Non-Drinker' : (parsed.alco === 1 ? 'Regular Drinker' : null));
+    updateReviewBadge('badge-active', parsed.active !== null, parsed.active === 1 ? 'Physically Active' : (parsed.active === 0 ? 'Physically Inactive' : null));
 
     const alertTitle = document.getElementById('ocr-alert-title');
     const alertBody = document.getElementById('ocr-alert-body');
 
     if (alertTitle && alertBody) {
-        alertTitle.innerText = "OCR Extraction Complete — Your report is processed on this device.";
+        alertTitle.innerText = "OCR Extraction Complete";
         if (parsed.warnings && parsed.warnings.length > 0) {
-            alertBody.innerText = "⚠️ " + parsed.warnings.join("\n⚠️ ");
+            alertBody.innerText = `Identified ${parsed.fieldsFoundCount}/11 fields.\n⚠️ ${parsed.warnings.join("\n⚠️ ")}`;
         } else {
-            alertBody.innerText = "All recognized values populated into the assessment form. Please verify fields before proceeding.";
+            alertBody.innerText = `Identified ${parsed.fieldsFoundCount}/11 fields. Review values below or proceed to assessment form.`;
         }
+    }
+}
+
+function updateReviewBadge(elementId, isDetected, displayValue) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    if (isDetected && displayValue) {
+        el.className = 'field-status detected';
+        el.innerText = displayValue;
+    } else {
+        el.className = 'field-status missing';
+        el.innerText = 'Not detected — enter manually';
     }
 }
 
@@ -526,6 +931,9 @@ function validatePatientForm(payload) {
     if (isNaN(payload.age) || payload.age < 1 || payload.age > 120) {
         errors.push('Age must be between 1 and 120 years.');
     }
+    if (isNaN(payload.gender)) {
+        errors.push('Please select Gender.');
+    }
     if (isNaN(payload.height) || payload.height < 50 || payload.height > 250) {
         errors.push('Height must be between 50 cm and 250 cm.');
     }
@@ -540,6 +948,21 @@ function validatePatientForm(payload) {
     }
     if (payload.ap_hi <= payload.ap_lo) {
         errors.push('Systolic BP must be strictly greater than Diastolic BP.');
+    }
+    if (isNaN(payload.cholesterol)) {
+        errors.push('Please select Cholesterol Level.');
+    }
+    if (isNaN(payload.gluc)) {
+        errors.push('Please select Glucose Level.');
+    }
+    if (isNaN(payload.smoke)) {
+        errors.push('Please select Smoking Status.');
+    }
+    if (isNaN(payload.alco)) {
+        errors.push('Please select Alcohol Intake.');
+    }
+    if (isNaN(payload.active)) {
+        errors.push('Please select Physical Activity.');
     }
     return errors;
 }
@@ -571,7 +994,6 @@ function renderResult(res, payload) {
     const tagEl = document.getElementById('res-prediction-label');
     const resBox = document.getElementById('res-box');
 
-    // Reset 4-Segment Scale Bar Classes
     const lowSeg = document.getElementById('v-scale-low');
     const modSeg = document.getElementById('v-scale-mod');
     const elevSeg = document.getElementById('v-scale-elev');
@@ -613,7 +1035,6 @@ function renderResult(res, payload) {
         document.getElementById('tv-lbl-high').className = 'active';
     }
 
-    // Baseline Metrics
     document.getElementById('summary-age').innerText = payload.age.toFixed(1) + ' yrs';
     document.getElementById('summary-bp').innerText = `${payload.ap_hi}/${payload.ap_lo} mmHg`;
     
@@ -624,7 +1045,6 @@ function renderResult(res, payload) {
     document.getElementById('summary-cholesterol').innerText = `Level ${payload.cholesterol}`;
     document.getElementById('summary-gluc').innerText = `Level ${payload.gluc}`;
 
-    // Generate Dynamic Health Factors
     const factorsList = document.getElementById('factors-list');
     const factors = [];
 

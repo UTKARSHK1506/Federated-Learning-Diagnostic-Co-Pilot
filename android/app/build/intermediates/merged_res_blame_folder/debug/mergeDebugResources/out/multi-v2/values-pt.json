@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.federated.copilot.app-mergeDebugResources-29:/values-pt/values-pt.xml",
+            "outputFile": "com.federated.copilot.app-mergeDebugResources-31:/values-pt/values-pt.xml",
             "map": [
                 {
                     "source": "C:\\Users\\utkar\\.gradle\\caches\\8.13\\transforms\\fbc6479a717e7adaab074d0a204aab6c\\transformed\\core-1.12.0\\res\\values-pt\\values-pt.xml",

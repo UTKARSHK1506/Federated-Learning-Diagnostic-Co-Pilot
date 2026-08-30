@@ -168,38 +168,50 @@ body {
 
 /* Hero / Welcome Landing Card */
 .hero-card {
-    background-color: var(--primary-light);
-    border: 1px solid #99F6E4;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 40px 24px;
     text-align: center;
     margin-top: 10px;
     margin-bottom: 24px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow);
 }
 
 .hero-logo-visual {
-    width: 110dp;
-    height: 110dp;
+    width: 100px;
+    height: 100px;
     margin: 0 auto 16px auto;
+    background-color: var(--primary-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .hero-logo-visual svg {
-    width: 90px;
-    height: 90px;
+    width: 56px;
+    height: 56px;
 }
 
 .hero-card h1 {
-    font-size: 1.75rem;
+    font-size: 2rem;
     font-weight: 800;
+    color: var(--dark);
+    margin-bottom: 4px;
+}
+
+.hero-card h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
     color: var(--primary);
     margin-bottom: 8px;
 }
 
 .hero-card .subtitle {
-    font-size: 1rem;
-    color: var(--primary-dark);
-    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-weight: 500;
     max-width: 480px;
     margin: 0 auto 24px auto;
 }
@@ -237,8 +249,12 @@ body {
 }
 
 .btn-secondary {
-    background-color: var(--secondary);
-    color: #FFFFFF;
+    background-color: #E2E8F0;
+    color: var(--dark);
+}
+
+.btn-secondary:hover {
+    background-color: #CBD5E1;
 }
 
 .btn-teal {
@@ -305,7 +321,7 @@ body {
 }
 
 .dash-card-teal .dash-card-title {
-    color: var(--primary);
+    color: var(--primary-dark);
 }
 
 .dash-card-desc {
@@ -338,7 +354,7 @@ body {
 .dropzone-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--primary-dark);
 }
 
 .dropzone-subtitle {
@@ -364,6 +380,100 @@ body {
     .upload-buttons-grid {
         flex-direction: row;
     }
+}
+
+/* OCR Progress Box */
+.ocr-progress-container {
+    background-color: #F1F5F9;
+    border: 1px solid #CBD5E1;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.spinner-sm {
+    width: 20px;
+    height: 20px;
+    border: 3px solid #CBD5E1;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.progress-text {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+/* Review Screen Grid */
+.review-sections-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 14px;
+}
+
+@media (min-width: 600px) {
+    .review-sections-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.review-section-card {
+    padding: 16px 20px;
+    margin-bottom: 0;
+}
+
+.review-section-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+}
+
+.review-field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.review-field-row:last-child {
+    border-bottom: none;
+}
+
+.field-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.field-status {
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+.field-status.detected {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+
+.field-status.missing {
+    background-color: #F3F4F6;
+    color: #6B7280;
+    font-weight: 500;
 }
 
 /* Form Styles */

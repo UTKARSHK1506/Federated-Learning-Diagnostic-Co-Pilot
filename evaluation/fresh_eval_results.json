@@ -1,0 +1,158 @@
+{
+  "raw_dataset_size": 68666,
+  "clinic_paths": {
+    "Clinic A": "c:\\Users\\utkar\\OneDrive\\Desktop\\FL\\federated-diagnostic-copilot\\data\\clinic_A.csv",
+    "Clinic B": "c:\\Users\\utkar\\OneDrive\\Desktop\\FL\\federated-diagnostic-copilot\\data\\clinic_B.csv",
+    "Clinic C": "c:\\Users\\utkar\\OneDrive\\Desktop\\FL\\federated-diagnostic-copilot\\data\\clinic_C.csv"
+  },
+  "local_results": {
+    "Clinic A": {
+      "num_samples": 2289,
+      "test_loss": 0.558355670039859,
+      "accuracy": 0.7204019222367847,
+      "precision": 0.7491090520313614,
+      "recall": 0.7849141150112023,
+      "f1_score": 0.7665937272064187,
+      "roc_auc": 0.7739224087103495,
+      "confusion_matrix": {
+        "TN": 598,
+        "FP": 352,
+        "FN": 288,
+        "TP": 1051
+      },
+      "class_distribution": {
+        "class_0_count": 950,
+        "class_0_pct": 41.502839667977284,
+        "class_1_count": 1339,
+        "class_1_pct": 58.497160332022716
+      }
+    },
+    "Clinic B": {
+      "num_samples": 2289,
+      "test_loss": 0.5441756151606808,
+      "accuracy": 0.7308868501529052,
+      "precision": 0.7055630936227951,
+      "recall": 0.5658324265505985,
+      "f1_score": 0.6280193236714976,
+      "roc_auc": 0.7779623996251082,
+      "confusion_matrix": {
+        "TN": 1153,
+        "FP": 217,
+        "FN": 399,
+        "TP": 520
+      },
+      "class_distribution": {
+        "class_0_count": 1370,
+        "class_0_pct": 59.8514635211883,
+        "class_1_count": 919,
+        "class_1_pct": 40.14853647881171
+      }
+    },
+    "Clinic C": {
+      "num_samples": 2289,
+      "test_loss": 0.5404399809956082,
+      "accuracy": 0.7304499781564002,
+      "precision": 0.7425650557620818,
+      "recall": 0.7014925373134329,
+      "f1_score": 0.7214446952595936,
+      "roc_auc": 0.8010909646142688,
+      "confusion_matrix": {
+        "TN": 873,
+        "FP": 277,
+        "FN": 340,
+        "TP": 799
+      },
+      "class_distribution": {
+        "class_0_count": 1150,
+        "class_0_pct": 50.24027959807776,
+        "class_1_count": 1139,
+        "class_1_pct": 49.75972040192224
+      }
+    }
+  },
+  "federated_results": {
+    "Clinic A": {
+      "num_samples": 2289,
+      "test_loss": 0.5780758628057777,
+      "accuracy": 0.7077326343381389,
+      "precision": 0.7975133214920072,
+      "recall": 0.6706497386109037,
+      "f1_score": 0.7286004056795132,
+      "roc_auc": 0.776327974529303,
+      "confusion_matrix": {
+        "TN": 722,
+        "FP": 228,
+        "FN": 441,
+        "TP": 898
+      },
+      "class_distribution": {
+        "class_0_count": 950,
+        "class_0_pct": 41.502839667977284,
+        "class_1_count": 1339,
+        "class_1_pct": 58.497160332022716
+      }
+    },
+    "Clinic B": {
+      "num_samples": 2289,
+      "test_loss": 0.5614780784955239,
+      "accuracy": 0.7160332022717344,
+      "precision": 0.6371049949031601,
+      "recall": 0.6800870511425462,
+      "f1_score": 0.6578947368421053,
+      "roc_auc": 0.7806092785715988,
+      "confusion_matrix": {
+        "TN": 1014,
+        "FP": 356,
+        "FN": 294,
+        "TP": 625
+      },
+      "class_distribution": {
+        "class_0_count": 1370,
+        "class_0_pct": 59.8514635211883,
+        "class_1_count": 919,
+        "class_1_pct": 40.14853647881171
+      }
+    },
+    "Clinic C": {
+      "num_samples": 2289,
+      "test_loss": 0.5396116163179624,
+      "accuracy": 0.7400611620795107,
+      "precision": 0.7551594746716698,
+      "recall": 0.7067603160667252,
+      "f1_score": 0.7301587301587301,
+      "roc_auc": 0.8035599496125511,
+      "confusion_matrix": {
+        "TN": 889,
+        "FP": 261,
+        "FN": 334,
+        "TP": 805
+      },
+      "class_distribution": {
+        "class_0_count": 1150,
+        "class_0_pct": 50.24027959807776,
+        "class_1_count": 1139,
+        "class_1_pct": 49.75972040192224
+      }
+    }
+  },
+  "overall_metrics": {
+    "micro_averaged": {
+      "accuracy": 0.7212756662297947,
+      "precision": 0.7336905137094233,
+      "recall": 0.6853105681483662,
+      "f1_score": 0.708675799086758,
+      "roc_auc": 0.7840928467990489
+    },
+    "macro_averaged": {
+      "accuracy": 0.7212756662297947,
+      "precision": 0.7299259303556124,
+      "recall": 0.685832368606725,
+      "f1_score": 0.7055512908934496,
+      "roc_auc": 0.7868324009044843
+    }
+  },
+  "production_consistency": {
+    "matches_deployed": false,
+    "notes": "Freshly trained federated model weights differ slightly in numerical precision due to non-deterministic CPU thread scheduling, but follow the exact same architecture, dataset partition, and hyperparameter configuration."
+  }
+}

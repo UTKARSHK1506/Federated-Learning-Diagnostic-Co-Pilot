@@ -5,11 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0D9488">
     <title>CardioSense - Cardiovascular Risk Assessment</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
+    <!-- Client-Side Document Extraction Libraries: PDF.js & Tesseract.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script>
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
 </head>
 <body>
     <main class="app-shell">
-        <!-- Top Clinical Header: Logo + CardioSense on LEFT, Status Pill on RIGHT -->
+        <!-- Clinical Header: Logo + CardioSense on LEFT, Status Pill on RIGHT -->
         <header class="app-header">
             <div class="brand-section">
                 <div class="brand-icon" aria-hidden="true">
@@ -62,12 +70,13 @@
                             <path d="M12 8v4l3 3" stroke-width="2.2"/>
                         </svg>
                     </div>
-                    <h1>Welcome to CardioSense</h1>
-                    <p class="subtitle">Simple cardiovascular risk assessment from patient health information.</p>
+                    <h1>CardioSense</h1>
+                    <h2>Cardiovascular Risk Assessment, Made Simple.</h2>
+                    <p class="subtitle">Assess cardiovascular risk using patient health information.</p>
                     
                     <div class="hero-actions">
                         <button class="btn btn-primary btn-large" onclick="showScreen('screen-dashboard')" type="button">
-                            Start Assessment
+                            Get Started
                         </button>
                         <button class="btn btn-secondary" onclick="showScreen('screen-how-it-works')" type="button">
                             How It Works
@@ -81,8 +90,8 @@
                  ========================================== -->
             <section id="screen-dashboard" class="screen">
                 <div class="dashboard-header">
-                    <h2>Welcome to CardioSense</h2>
-                    <p class="subtitle">Assess cardiovascular risk using patient health information.</p>
+                    <h2>CardioSense</h2>
+                    <p class="subtitle">Cardiovascular Risk Assessment, Made Simple.</p>
                 </div>
 
                 <!-- Inference Mode Selection Card -->
@@ -131,13 +140,13 @@
             </section>
 
             <!-- ==========================================
-                 SCREEN 3: 3-OPTION PATIENT REPORT UPLOAD
+                 SCREEN 3: PATIENT REPORT UPLOAD
                  ========================================== -->
             <section id="screen-ocr-upload" class="screen">
                 <div class="screen-header">
                     <div>
                         <h2>Upload Patient Report</h2>
-                        <p>Select a medical report photo, image, or PDF document for extraction</p>
+                        <p>Upload a medical report to identify available health information.</p>
                     </div>
                     <button class="btn-text" onclick="showScreen('screen-dashboard')" type="button">Return</button>
                 </div>
@@ -148,25 +157,31 @@
                         <div class="dropzone-icon">📄</div>
                         <div class="dropzone-title">Upload Patient Report</div>
                         <div class="dropzone-subtitle">Click to select or drag &amp; drop report files here</div>
-                        <div class="dropzone-formats">Supports JPG, PNG images and PDF documents</div>
+                        <div class="dropzone-formats">JPG • JPEG • PNG • PDF</div>
                     </div>
 
                     <!-- Hidden Inputs -->
-                    <input type="file" id="file-input-image" accept="image/*" style="display:none" onchange="handleFileSelected(this.files[0])">
-                    <input type="file" id="file-input-pdf" accept="application/pdf" style="display:none" onchange="handleFileSelected(this.files[0])">
+                    <input type="file" id="file-input-image" accept="image/*,.jpg,.jpeg,.png,.webp" style="display:none" onchange="handleFileSelected(this.files[0])">
+                    <input type="file" id="file-input-pdf" accept="application/pdf,.pdf" style="display:none" onchange="handleFileSelected(this.files[0])">
 
                     <div class="upload-buttons-grid">
                         <button class="btn btn-primary" onclick="triggerFileSelect('image/*')" type="button">
-                            📷 Take / Upload Image
+                            Upload Image
                         </button>
                         <button class="btn btn-teal" onclick="triggerFileSelect('application/pdf')" type="button">
-                            📑 Choose PDF Document
+                            Upload PDF
                         </button>
+                    </div>
+
+                    <!-- Progress Indicator -->
+                    <div class="ocr-progress-container" id="ocr-progress-box" style="display:none;">
+                        <div class="spinner-sm"></div>
+                        <div class="progress-text" id="ocr-progress-text">Reading your report...</div>
                     </div>
 
                     <div class="info-card">
                         <div class="info-card-header">
-                            🔒 Your report is processed locally when offline processing is available.
+                            🔒 Your report is processed entirely on this device.
                         </div>
                     </div>
                 </div>
@@ -179,7 +194,7 @@
                 <div class="screen-header">
                     <div>
                         <h2>Review Patient Information</h2>
-                        <p>Verify and edit extracted values before proceeding with risk assessment</p>
+                        <p>Verify extracted values before proceeding to assessment</p>
                     </div>
                 </div>
 
@@ -187,31 +202,98 @@
                     <div class="info-card-header" id="ocr-alert-title">
                         OCR Extraction Complete
                     </div>
-                    <p id="ocr-alert-body">Please review and edit any missing or unmapped values below.</p>
+                    <p id="ocr-alert-body">Review identified clinical values below.</p>
+                </div>
+
+                <!-- Structured Section Extraction Summary Grid -->
+                <div class="review-sections-grid margin-top">
+                    <!-- Patient Information -->
+                    <div class="card review-section-card">
+                        <div class="review-section-title">Patient Information</div>
+                        <div class="review-field-row">
+                            <span class="field-label">Age</span>
+                            <span class="field-status" id="badge-age">--</span>
+                        </div>
+                        <div class="review-field-row">
+                            <span class="field-label">Gender</span>
+                            <span class="field-status" id="badge-gender">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Measurements -->
+                    <div class="card review-section-card">
+                        <div class="review-section-title">Measurements</div>
+                        <div class="review-field-row">
+                            <span class="field-label">Height</span>
+                            <span class="field-status" id="badge-height">--</span>
+                        </div>
+                        <div class="review-field-row">
+                            <span class="field-label">Weight</span>
+                            <span class="field-status" id="badge-weight">--</span>
+                        </div>
+                        <div class="review-field-row">
+                            <span class="field-label">Systolic BP</span>
+                            <span class="field-status" id="badge-ap_hi">--</span>
+                        </div>
+                        <div class="review-field-row">
+                            <span class="field-label">Diastolic BP</span>
+                            <span class="field-status" id="badge-ap_lo">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Health Indicators -->
+                    <div class="card review-section-card">
+                        <div class="review-section-title">Health Indicators</div>
+                        <div class="review-field-row">
+                            <span class="field-label">Cholesterol</span>
+                            <span class="field-status" id="badge-cholesterol">--</span>
+                        </div>
+                        <div class="review-field-row">
+                            <span class="field-label">Glucose</span>
+                            <span class="field-status" id="badge-gluc">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Lifestyle -->
+                    <div class="card review-section-card">
+                        <div class="review-section-title">Lifestyle</div>
+                        <div class="review-field-row">
+                            <span class="field-label">Smoking Status</span>
+                            <span class="field-status" id="badge-smoke">--</span>
+                        </div>
+                        <div class="review-field-row">
+                            <span class="field-label">Alcohol Intake</span>
+                            <span class="field-status" id="badge-alco">--</span>
+                        </div>
+                        <div class="review-field-row">
+                            <span class="field-label">Physical Activity</span>
+                            <span class="field-status" id="badge-active">--</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="action-container margin-top">
                     <button class="btn btn-primary btn-large" onclick="showScreen('screen-assessment')" type="button">
-                        Continue to Assessment
+                        Continue to Assessment Form
                     </button>
                 </div>
             </section>
 
             <!-- ==========================================
-                 SCREEN 5: MANUAL HEALTH ASSESSMENT FORM
+                 SCREEN 5: HEALTH ASSESSMENT FORM
                  ========================================== -->
             <section id="screen-assessment" class="screen">
                 <div class="screen-header">
                     <div>
                         <h2>Health Assessment</h2>
-                        <p>Enter patient physiological and lifestyle data for risk assessment</p>
+                        <p>Enter or confirm patient health information</p>
                     </div>
                     <button class="btn-text" onclick="showScreen('screen-dashboard')" type="button">Return</button>
                 </div>
 
                 <!-- Validation Alert -->
                 <div class="validation-alert" id="validation-alert" role="alert">
-                    <span>Please correct the following fields before proceeding:</span>
+                    <span>Please complete the required fields:</span>
                     <ul id="validation-errors-list"></ul>
                 </div>
 
@@ -220,25 +302,26 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="age">Age <span class="unit">(Years)</span></label>
-                            <input type="number" step="0.1" id="age" name="age" value="55.5" required min="1" max="120">
+                            <input type="number" step="0.1" id="age" name="age" placeholder="e.g. 55" required min="1" max="120">
                         </div>
 
                         <div class="form-group">
                             <label for="gender">Gender <span class="unit">(Biological)</span></label>
                             <select id="gender" name="gender" required>
-                                <option value="1" selected>Female</option>
+                                <option value="" selected>-- Select Gender --</option>
+                                <option value="1">Female</option>
                                 <option value="2">Male</option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label for="height">Height <span class="unit">(cm)</span></label>
-                            <input type="number" step="0.1" id="height" name="height" value="165.0" required min="50" max="250">
+                            <input type="number" step="0.1" id="height" name="height" placeholder="e.g. 165" required min="50" max="250">
                         </div>
 
                         <div class="form-group">
                             <label for="weight">Weight <span class="unit">(kg)</span></label>
-                            <input type="number" step="0.1" id="weight" name="weight" value="70.0" required min="20" max="300">
+                            <input type="number" step="0.1" id="weight" name="weight" placeholder="e.g. 70" required min="20" max="300">
                         </div>
                     </div>
 
@@ -246,19 +329,20 @@
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="ap_hi">Systolic BP <span class="unit">(mmHg)</span></label>
-                            <input type="number" id="ap_hi" name="ap_hi" value="140" required min="60" max="260">
+                            <input type="number" id="ap_hi" name="ap_hi" placeholder="e.g. 140" required min="60" max="260">
                         </div>
 
                         <div class="form-group">
                             <label for="ap_lo">Diastolic BP <span class="unit">(mmHg)</span></label>
-                            <input type="number" id="ap_lo" name="ap_lo" value="90" required min="40" max="180">
+                            <input type="number" id="ap_lo" name="ap_lo" placeholder="e.g. 90" required min="40" max="180">
                         </div>
 
                         <div class="form-group full-width">
                             <label for="cholesterol">Cholesterol Level</label>
                             <select id="cholesterol" name="cholesterol" required>
+                                <option value="" selected>-- Select Cholesterol --</option>
                                 <option value="1">Normal (&lt; 200 mg/dL)</option>
-                                <option value="2" selected>Above Normal (200–239 mg/dL)</option>
+                                <option value="2">Above Normal (200–239 mg/dL)</option>
                                 <option value="3">Well Above Normal (≥ 240 mg/dL)</option>
                             </select>
                         </div>
@@ -266,7 +350,8 @@
                         <div class="form-group full-width">
                             <label for="gluc">Glucose Level</label>
                             <select id="gluc" name="gluc" required>
-                                <option value="1" selected>Normal (&lt; 100 mg/dL)</option>
+                                <option value="" selected>-- Select Glucose --</option>
+                                <option value="1">Normal (&lt; 100 mg/dL)</option>
                                 <option value="2">Above Normal (100–125 mg/dL)</option>
                                 <option value="3">Well Above Normal (≥ 126 mg/dL)</option>
                             </select>
@@ -278,7 +363,8 @@
                         <div class="form-group">
                             <label for="smoke">Smoking Status</label>
                             <select id="smoke" name="smoke" required>
-                                <option value="0" selected>Non-Smoker</option>
+                                <option value="" selected>-- Select Smoking --</option>
+                                <option value="0">Non-Smoker</option>
                                 <option value="1">Active Smoker</option>
                             </select>
                         </div>
@@ -286,7 +372,8 @@
                         <div class="form-group">
                             <label for="alco">Alcohol Intake</label>
                             <select id="alco" name="alco" required>
-                                <option value="0" selected>Non-Drinker</option>
+                                <option value="" selected>-- Select Alcohol --</option>
+                                <option value="0">Non-Drinker</option>
                                 <option value="1">Regular Drinker</option>
                             </select>
                         </div>
@@ -294,8 +381,9 @@
                         <div class="form-group full-width">
                             <label for="active">Physical Activity</label>
                             <select id="active" name="active" required>
+                                <option value="" selected>-- Select Physical Activity --</option>
                                 <option value="0">Physically Inactive</option>
-                                <option value="1" selected>Physically Active</option>
+                                <option value="1">Physically Active</option>
                             </select>
                         </div>
                     </div>
@@ -314,21 +402,21 @@
             <section id="screen-result" class="screen">
                 <div class="card result-card">
                     <div class="result-title-section">
-                        <h2>Cardiovascular Risk Assessment</h2>
+                        <h2>Risk Assessment</h2>
                     </div>
 
-                    <!-- Dynamic Risk Result Metric (NO STATIC PLACEHOLDER) -->
+                    <!-- Risk Metric -->
                     <div class="risk-primary-card" id="res-box">
-                        <div class="risk-metric-caption">ESTIMATED RISK</div>
+                        <div class="risk-metric-caption">ESTIMATED CARDIOVASCULAR RISK</div>
                         <div class="probability-metric" id="res-probability"></div>
                         <div class="risk-tag" id="res-prediction">
                             <span id="res-prediction-label"></span>
                         </div>
                     </div>
 
-                    <!-- 4-Segment Horizontal Risk Scale -->
+                    <!-- Risk Scale -->
                     <div class="scale-card">
-                        <div class="section-label">RISK CATEGORY SCALE</div>
+                        <div class="section-label">RISK SCALE</div>
                         <div class="scale-bar">
                             <div class="scale-segment" id="v-scale-low"></div>
                             <div class="scale-segment" id="v-scale-mod"></div>
@@ -343,9 +431,9 @@
                         </div>
                     </div>
 
-                    <!-- Derived Patient Metrics Grid -->
+                    <!-- Patient Metrics Grid -->
                     <div class="margin-top">
-                        <div class="section-label">Patient Baseline Metrics</div>
+                        <div class="section-label">Patient Metrics</div>
                         <div class="patient-summary-grid">
                             <div class="summary-tile">
                                 <span class="summary-tile-label">Age</span>
@@ -370,18 +458,18 @@
                         </div>
                     </div>
 
-                    <!-- Dynamic Key Health Factors -->
+                    <!-- Factors Considered -->
                     <div class="factors-section margin-top">
-                        <div class="section-label">Key Health Factors</div>
+                        <div class="section-label">Factors considered in this assessment</div>
                         <ul class="factors-list" id="factors-list">
                             <!-- Dynamically populated -->
                         </ul>
                     </div>
 
-                    <!-- Clinical Disclaimer -->
+                    <!-- Disclaimer -->
                     <div class="clinical-disclaimer margin-top" role="note">
                         <div class="disclaimer-text">
-                            <strong>Important Disclaimer:</strong> This assessment is intended to support clinical review and does not replace professional medical advice.
+                            <strong>Important Disclaimer:</strong> This assessment is intended for informational review and does not replace professional medical diagnosis or advice.
                         </div>
                     </div>
                 </div>
@@ -403,7 +491,7 @@
                 <div class="screen-header">
                     <div>
                         <h2>Cardiovascular Health Guidance</h2>
-                        <p>General educational information on cardiovascular health factors</p>
+                        <p>Educational cardiovascular guidance</p>
                     </div>
                     <button class="btn-text" onclick="showScreen('screen-dashboard')" type="button">Return</button>
                 </div>
@@ -411,23 +499,27 @@
                 <div class="tips-grid">
                     <div class="card tip-card">
                         <div class="tip-title">🫀 Blood Pressure</div>
-                        <p>Monitor your blood pressure regularly. Discuss persistent high readings with a healthcare professional.</p>
+                        <p>Monitor blood pressure regularly. Consult a physician regarding persistent elevated readings.</p>
                     </div>
                     <div class="card tip-card">
-                        <div class="tip-title">🧪 Cholesterol Management</div>
-                        <p>Maintain a diet low in saturated fats. Have lipid levels checked as recommended by your physician.</p>
+                        <div class="tip-title">🧪 Cholesterol</div>
+                        <p>Maintain a diet balanced in healthy fats and schedule regular lipid screenings.</p>
                     </div>
                     <div class="card tip-card">
                         <div class="tip-title">🏃 Physical Activity</div>
-                        <p>Aim for at least 30 minutes of moderate physical activity daily, appropriate for your medical baseline.</p>
+                        <p>Aim for at least 30 minutes of moderate activity daily as suitable for your baseline.</p>
                     </div>
                     <div class="card tip-card">
-                        <div class="tip-title">🥗 Healthy Diet</div>
-                        <p>Focus on nutrient-dense foods, high fiber, whole grains, and low sodium intake.</p>
+                        <div class="tip-title">🥗 Diet</div>
+                        <p>Emphasize whole foods, vegetables, high fiber, and reduced dietary sodium.</p>
                     </div>
                     <div class="card tip-card">
                         <div class="tip-title">🚭 Smoking &amp; Alcohol</div>
-                        <p>Avoid smoking and limit alcohol consumption to reduce vascular stress and risk factors.</p>
+                        <p>Avoid tobacco products and limit alcohol consumption to minimize vascular stress.</p>
+                    </div>
+                    <div class="card tip-card">
+                        <div class="tip-title">📋 Regular Check-ups</div>
+                        <p>Schedule routine medical evaluations with your healthcare provider.</p>
                     </div>
                 </div>
             </section>
@@ -439,7 +531,7 @@
                 <div class="screen-header">
                     <div>
                         <h2>How CardioSense Works</h2>
-                        <p>A simple 3-step process for cardiovascular risk assessment</p>
+                        <p>A simple 3-step risk assessment workflow</p>
                     </div>
                     <button class="btn-text" onclick="showScreen('screen-welcome')" type="button">Return</button>
                 </div>
@@ -447,15 +539,15 @@
                 <div class="tips-grid">
                     <div class="card tip-card">
                         <div class="tip-title">1. Enter or Upload</div>
-                        <p>Provide patient physiological metrics manually or upload a medical report for local extraction.</p>
+                        <p>Provide patient metrics manually or upload a medical report for local extraction.</p>
                     </div>
                     <div class="card tip-card">
                         <div class="tip-title">2. Review</div>
-                        <p>Review and correct extracted patient information to ensure data accuracy before analysis.</p>
+                        <p>Verify and adjust identified information before running the evaluation.</p>
                     </div>
                     <div class="card tip-card">
                         <div class="tip-title">3. Assess</div>
-                        <p>CardioSense calculates an estimated cardiovascular risk and provides key health factor insights.</p>
+                        <p>CardioSense evaluates risk factors and provides cardiovascular risk insights.</p>
                     </div>
                 </div>
             </section>
@@ -466,8 +558,8 @@
             <section id="screen-history" class="screen">
                 <div class="screen-header">
                     <div>
-                        <h2>Local Assessment History</h2>
-                        <p>Saved patient risk assessments stored on this device</p>
+                        <h2>Assessment History</h2>
+                        <p>Saved assessments stored locally on this device</p>
                     </div>
                     <button class="btn-text" onclick="showScreen('screen-dashboard')" type="button">Return</button>
                 </div>
@@ -484,6 +576,6 @@
         </div>
     </main>
 
-    <script src="script.js?v=3"></script>
+    <script src="script.js?v=7"></script>
 </body>
 </html>

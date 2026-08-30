@@ -1,23 +1,26 @@
 package com.federated.copilot
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.graphics.ImageDecoder
+import android.graphics.Matrix
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
+import androidx.exifinterface.media.ExifInterface
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import org.json.JSONObject
+import java.io.File
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -27,6 +30,12 @@ import kotlin.math.exp
 import kotlin.math.max
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "CardioSense_OCR"
+    }
+
+    private var cameraPhotoUri: Uri? = null
 
     // Screens
     private lateinit var screenWelcome: View
@@ -104,9 +113,9 @@ class MainActivity : AppCompatActivity() {
     // State Variables
     private var lastComputedProb: Double = 0.0
     private var lastComputedCategory: String = "Unknown"
-    private var lastComputedApHi: Int = 140
-    private var lastComputedApLo: Int = 90
-    private var lastComputedAge: Double = 55.5
+    private var lastComputedApHi: Int = 0
+    private var lastComputedApLo: Int = 0
+    private var lastComputedAge: Double = 0.0
 
     // Offline Assets & Executor
     private var weightsJson: JSONObject? = null
@@ -114,20 +123,30 @@ class MainActivity : AppCompatActivity() {
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // Activity Result Launchers for Report Selection Options
+    // Activity Result Launchers
 
-    // 1. Take Photo
-    private val takePhotoLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            val processed = OcrImagePreprocessor.preprocessBitmap(bitmap)
-            processOcrBitmap(processed)
+
+    // 1. Take Photo (Full Resolution JPEG via FileProvider)
+    private val takePhotoLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
+        if (success && cameraPhotoUri != null) {
+            Log.d(TAG, "========== [OCR-A] INPUT ==========")
+            Log.d(TAG, "URI: $cameraPhotoUri")
+            Log.d(TAG, "TYPE: image/jpeg")
+            Log.d(TAG, "SOURCE: Camera (Full-resolution)")
+            Log.d(TAG, "===================================")
+            processOcrImageUri(cameraPhotoUri!!)
+        } else {
+            Log.w(TAG, "[OCR-A] Camera capture cancelled or failed")
         }
     }
 
-    // 2. Choose Image (JPG, PNG, WEBP, HEIC - Google Photos Compatible)
+
+    // 2. Choose Image (JPG, PNG, WEBP, HEIC - ContentResolver openInputStream)
     private val selectImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
             processOcrImageUri(uri)
+        } else {
+            Log.w(TAG, "[STAGE A - IMAGE INPUT] Selection returned null Uri")
         }
     }
 
@@ -140,6 +159,8 @@ class MainActivity : AppCompatActivity() {
             } else {
                 processOcrImageUri(uri)
             }
+        } else {
+            Log.w(TAG, "[STAGE A - PDF INPUT] Selection returned null Uri")
         }
     }
 
@@ -150,6 +171,69 @@ class MainActivity : AppCompatActivity() {
         initViews()
         setupSpinners()
         loadLocalAssetsAsync()
+        runDeveloperParserUnitTest()
+    }
+
+    private fun runDeveloperParserUnitTest() {
+        val testReportStr1 = """
+            Patient Medical Report
+
+            Age: 34 years
+            Height: 172 cm
+            Weight: 68 kg
+            Blood Pressure: 118/76 mmHg
+            Total Cholesterol: 182 mg/dL
+            Smoking Status: No
+            Alcohol Consumption: No
+            Physical Activity: Yes
+        """.trimIndent()
+
+        val disconnectedColumnOcrText = """
+            Patient Information
+            Patient Name
+            Age
+            Gender
+            Height
+            Weight
+            Clinical Measurements
+            Blood Pressure
+            Cholesterol
+            Glucose
+            Lifestyle Information
+            Smoking
+            Alcohol Consumption
+            Physical Activity
+
+            Rahul Sharma
+            55 years
+            Female
+            165 cm
+            70 kg
+            140 / 90 mmHg
+            Level 2
+            Level 1
+            No
+            No
+            Yes
+        """.trimIndent()
+
+        Log.d(TAG, "==================== MANDATORY PARSER UNIT TEST ====================")
+        val ocrResult1 = OcrReportParser.parseText(testReportStr1)
+        val data1 = ocrResult1.parsedData
+        val passed1 = data1.age == 34.0 && data1.height == 172.0 && data1.weight == 68.0 &&
+                data1.apHi == 118 && data1.apLo == 76 && data1.cholesterol == 1 &&
+                data1.smoke == 0 && data1.alco == 0 && data1.active == 1
+
+        Log.d(TAG, "[TEST REPORT 1 - INLINE]: ${if (passed1) "PASS" else "FAIL"} (${data1.fieldsFoundCount()}/10 fields matched)")
+
+        val ocrResult2 = OcrReportParser.parseText(disconnectedColumnOcrText)
+        val data2 = ocrResult2.parsedData
+        val passed2 = data2.age == 55.0 && data2.gender == 1 && data2.height == 165.0 && data2.weight == 70.0 &&
+                data2.apHi == 140 && data2.apLo == 90 && data2.cholesterol == 2 && data2.glucose == 1 &&
+                data2.smoke == 0 && data2.alco == 0 && data2.active == 1
+
+        Log.d(TAG, "[TEST REPORT 2 - 2-COLUMN DISCONNECTED TABLE]: ${if (passed2) "PASS (10/10 MATCHED!)" else "FAIL: $data2"} (${data2.fieldsFoundCount()}/10 fields matched)")
+        Log.d(TAG, "==========================================================================")
     }
 
     private fun initViews() {
@@ -225,6 +309,7 @@ class MainActivity : AppCompatActivity() {
 
         // Dashboard cards
         findViewById<View>(R.id.dash_card_assess).setOnClickListener {
+            resetAssessmentForm()
             showScreen(screenAssessment, navLblAssess)
         }
         findViewById<View>(R.id.dash_card_ocr).setOnClickListener {
@@ -246,8 +331,20 @@ class MainActivity : AppCompatActivity() {
             selectPdfLauncher.launch("application/pdf")
         }
         findViewById<Button>(R.id.btn_take_photo_ocr).setOnClickListener {
-            takePhotoLauncher.launch(null)
+            try {
+                val photoFile = File(cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
+                cameraPhotoUri = FileProvider.getUriForFile(
+                    this,
+                    "$packageName.fileprovider",
+                    photoFile
+                )
+                takePhotoLauncher.launch(cameraPhotoUri)
+            } catch (e: Exception) {
+                Log.e(TAG, "[OCR-A] Failed to create camera file URI: ${e.message}", e)
+                Toast.makeText(this, "Camera error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
+
 
         // OCR Review Action
         findViewById<Button>(R.id.btn_confirm_ocr_review).setOnClickListener {
@@ -338,29 +435,28 @@ class MainActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        spinnerGender.adapter = createCustomAdapter(arrayOf("Female", "Male"))
-        spinnerCholesterol.adapter = createCustomAdapter(arrayOf("Normal (< 200 mg/dL)", "Above Normal (200-239 mg/dL)", "Well Above Normal (≥ 240 mg/dL)"))
-        spinnerGlucose.adapter = createCustomAdapter(arrayOf("Normal (< 100 mg/dL)", "Above Normal (100-125 mg/dL)", "Well Above Normal (≥ 126 mg/dL)"))
-        spinnerSmoke.adapter = createCustomAdapter(arrayOf("Non-Smoker", "Active Smoker"))
-        spinnerAlco.adapter = createCustomAdapter(arrayOf("Non-Drinker", "Regular Drinker"))
-        spinnerActive.adapter = createCustomAdapter(arrayOf("Physically Inactive", "Physically Active"))
+        spinnerGender.adapter = createCustomAdapter(arrayOf("-- Select Gender --", "Female", "Male"))
+        spinnerCholesterol.adapter = createCustomAdapter(arrayOf("-- Select Cholesterol --", "Normal (< 200 mg/dL)", "Above Normal (200-239 mg/dL)", "Well Above Normal (≥ 240 mg/dL)"))
+        spinnerGlucose.adapter = createCustomAdapter(arrayOf("-- Select Glucose --", "Normal (< 100 mg/dL)", "Above Normal (100-125 mg/dL)", "Well Above Normal (≥ 126 mg/dL)"))
+        spinnerSmoke.adapter = createCustomAdapter(arrayOf("-- Select Smoking Status --", "Non-Smoker", "Active Smoker"))
+        spinnerAlco.adapter = createCustomAdapter(arrayOf("-- Select Alcohol Intake --", "Non-Drinker", "Regular Drinker"))
+        spinnerActive.adapter = createCustomAdapter(arrayOf("-- Select Physical Activity --", "Physically Inactive", "Physically Active"))
 
-        spinnerCholesterol.setSelection(1)
-        spinnerActive.setSelection(1)
+        resetAssessmentForm()
     }
 
     private fun resetAssessmentForm() {
-        etAge.setText("55.5")
-        etHeight.setText("165.0")
-        etWeight.setText("70.0")
-        etApHi.setText("140")
-        etApLo.setText("90")
+        etAge.setText("")
+        etHeight.setText("")
+        etWeight.setText("")
+        etApHi.setText("")
+        etApLo.setText("")
         spinnerGender.setSelection(0)
-        spinnerCholesterol.setSelection(1)
+        spinnerCholesterol.setSelection(0)
         spinnerGlucose.setSelection(0)
         spinnerSmoke.setSelection(0)
         spinnerAlco.setSelection(0)
-        spinnerActive.setSelection(1)
+        spinnerActive.setSelection(0)
     }
 
     private fun loadLocalAssetsAsync() {
@@ -379,128 +475,393 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadBitmapFromUri(context: Context, uri: Uri): Bitmap? {
+        return try {
+            val contentResolver = context.contentResolver
+
+            // 1. Check bounds and downsample if image is excessively large to prevent OOM
+            var inSampleSize = 1
+            val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            contentResolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, boundsOptions)
+            }
+            val maxDim = Math.max(boundsOptions.outWidth, boundsOptions.outHeight)
+            if (maxDim > 3000) {
+                inSampleSize = 2
+            }
+
+            val decodeOptions = BitmapFactory.Options().apply {
+                this.inSampleSize = inSampleSize
+                this.inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+
+            var bitmap = contentResolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, decodeOptions)
+            }
+
+            if (bitmap == null) {
+                Log.e(TAG, "========== [OCR-B] BITMAP ==========")
+                Log.e(TAG, "WIDTH: 0")
+                Log.e(TAG, "HEIGHT: 0")
+                Log.e(TAG, "VALID: false")
+                Log.e(TAG, "ORIENTATION: 0°")
+                Log.e(TAG, "=====================================")
+                return null
+            }
+
+            // 2. Read EXIF Orientation and rotate if necessary
+            var rotationDegrees = 0f
+            try {
+                contentResolver.openInputStream(uri)?.use { stream ->
+                    val exif = ExifInterface(stream)
+                    val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
+                    rotationDegrees = when (orientation) {
+                        ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                        else -> 0f
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "[OCR-B] EXIF reading exception: ${e.message}")
+            }
+
+            val finalBitmap = if (rotationDegrees != 0f) {
+                val matrix = Matrix().apply { postRotate(rotationDegrees) }
+                val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+                bitmap.recycle()
+                rotated
+            } else {
+                bitmap
+            }
+
+            Log.d(TAG, "========== [OCR-B] BITMAP ==========")
+            Log.d(TAG, "WIDTH: ${finalBitmap.width}")
+            Log.d(TAG, "HEIGHT: ${finalBitmap.height}")
+            Log.d(TAG, "VALID: true")
+            Log.d(TAG, "ORIENTATION: ${rotationDegrees.toInt()}°")
+            Log.d(TAG, "=====================================")
+
+            finalBitmap
+        } catch (e: Exception) {
+            Log.e(TAG, "[OCR-B ERROR] Failed to decode Uri $uri: ${e.message}", e)
+            null
+        }
+    }
+
     private fun processOcrImageUri(uri: Uri) {
         try {
             val mime = contentResolver.getType(uri) ?: ""
+            Log.d(TAG, "========== [OCR-A] INPUT ==========")
+            Log.d(TAG, "URI: $uri")
+            Log.d(TAG, "TYPE: $mime")
+            Log.d(TAG, "SOURCE: Gallery / Photo Picker / Uri")
+            Log.d(TAG, "===================================")
+
             if (mime.contains("pdf", ignoreCase = true) || uri.toString().endsWith(".pdf", ignoreCase = true)) {
                 processOcrPdf(uri)
                 return
             }
 
-            val bitmap: Bitmap? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                ImageDecoder.decodeBitmap(ImageDecoder.createSource(contentResolver, uri)) { decoder, _, _ ->
-                    decoder.isMutableRequired = true
-                }
-            } else {
-                contentResolver.openInputStream(uri).use { stream ->
-                    BitmapFactory.decodeStream(stream)
-                }
+            Toast.makeText(this, "Processing medical report on-device...", Toast.LENGTH_SHORT).show()
+
+            val bitmap = loadBitmapFromUri(this, uri)
+            if (bitmap == null) {
+                val failedResult = OcrResult(
+                    success = false,
+                    rawText = "",
+                    charCount = 0,
+                    parsedData = OcrExtractedPatient(),
+                    fieldsFoundCount = 0,
+                    statusMessage = "Image Decoding Failed: unable to read Uri $uri",
+                    errorMsg = "Unable to decode image from Uri"
+                )
+                populateAssessmentFromOcr(failedResult)
+                showScreen(screenAssessment, navLblAssess)
+                return
             }
 
-            if (bitmap != null) {
-                val processed = OcrImagePreprocessor.preprocessBitmap(bitmap)
-                processOcrBitmap(processed)
-            } else {
-                Toast.makeText(this, "Could not load image. Please select another file.", Toast.LENGTH_SHORT).show()
-                showScreen(screenAssessment, navLblAssess)
-            }
+            processOcrBitmap(bitmap)
         } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Error processing report image: ${e.message}", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "[OCR-A/B ERROR] ${e.message}", e)
+            val errResult = OcrResult(
+                success = false,
+                rawText = "",
+                charCount = 0,
+                parsedData = OcrExtractedPatient(),
+                fieldsFoundCount = 0,
+                statusMessage = "Error processing image: ${e.message}",
+                errorMsg = e.message
+            )
+            populateAssessmentFromOcr(errResult)
             showScreen(screenAssessment, navLblAssess)
         }
     }
 
     private fun processOcrBitmap(bitmap: Bitmap) {
         try {
-            val image = InputImage.fromBitmap(bitmap, 0)
             val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            val pass1Image = InputImage.fromBitmap(bitmap, 0)
 
-            Toast.makeText(this, "Processing report on-device...", Toast.LENGTH_SHORT).show()
+            // PASS 1: ML Kit OCR on original properly oriented bitmap
+            recognizer.process(pass1Image)
+                .addOnSuccessListener { visionText1 ->
+                    val rawText1 = visionText1.text
+                    val blockCount1 = visionText1.textBlocks.size
+                    val result1 = OcrReportParser.parseText(rawText1)
 
-            recognizer.process(image)
-                .addOnSuccessListener { visionText ->
-                    val rawText = visionText.text
-                    if (rawText.isBlank()) {
-                        Toast.makeText(this, "We couldn't read enough information from this report. Please enter information manually.", Toast.LENGTH_LONG).show()
+                    Log.d(TAG, "========== [OCR-C] ML KIT (PASS 1 - RAW IMAGE) ==========")
+                    Log.d(TAG, "STATUS: SUCCESS")
+                    Log.d(TAG, "CHARACTER COUNT: ${rawText1.length}")
+                    Log.d(TAG, "BLOCK COUNT: $blockCount1")
+                    Log.d(TAG, "FIELDS DETECTED: ${result1.fieldsFoundCount}/10")
+                    Log.d(TAG, "==========================================================")
+
+                    // If Pass 1 extracted >= 7 fields or ample text, accept immediately
+                    if (result1.fieldsFoundCount >= 7 || (result1.fieldsFoundCount >= 4 && rawText1.length > 150)) {
+                        Log.d(TAG, "========== [OCR-D] RAW TEXT ==========\n$rawText1\n=======================================")
+                        populateAssessmentFromOcr(result1)
                         showScreen(screenAssessment, navLblAssess)
                         return@addOnSuccessListener
                     }
 
-                    val parsed = OcrReportParser.parseText(rawText)
-                    populateAssessmentFromOcr(parsed)
-                    showScreen(screenOcrReview, navLblAssess)
+                    // PASS 2: Conservative Image Preprocessing Fallback
+                    Log.d(TAG, "[OCR-C] Pass 1 yielded ${result1.fieldsFoundCount}/10 fields. Running Pass 2 (Conservative Preprocessing Fallback)...")
+                    val preprocessedBitmap = OcrImagePreprocessor.preprocessBitmap(bitmap)
+                    val pass2Image = InputImage.fromBitmap(preprocessedBitmap, 0)
+
+                    recognizer.process(pass2Image)
+                        .addOnSuccessListener { visionText2 ->
+                            val rawText2 = visionText2.text
+                            val blockCount2 = visionText2.textBlocks.size
+                            val result2 = OcrReportParser.parseText(rawText2)
+
+                            Log.d(TAG, "========== [OCR-C] ML KIT (PASS 2 - PREPROCESSED) ==========")
+                            Log.d(TAG, "STATUS: SUCCESS")
+                            Log.d(TAG, "CHARACTER COUNT: ${rawText2.length}")
+                            Log.d(TAG, "BLOCK COUNT: $blockCount2")
+                            Log.d(TAG, "FIELDS DETECTED: ${result2.fieldsFoundCount}/10")
+                            Log.d(TAG, "=============================================================")
+
+                            val finalResult = if (result2.fieldsFoundCount > result1.fieldsFoundCount) {
+                                Log.d(TAG, "[OCR-C] Pass 2 Preprocessed extracted MORE fields (${result2.fieldsFoundCount} vs ${result1.fieldsFoundCount}). Using Pass 2.")
+                                Log.d(TAG, "========== [OCR-D] RAW TEXT ==========\n$rawText2\n=======================================")
+                                result2
+                            } else {
+                                Log.d(TAG, "[OCR-C] Pass 1 Raw Image extracted EQUAL OR MORE fields (${result1.fieldsFoundCount} vs ${result2.fieldsFoundCount}). Using Pass 1.")
+                                Log.d(TAG, "========== [OCR-D] RAW TEXT ==========\n$rawText1\n=======================================")
+                                result1
+                            }
+
+                            populateAssessmentFromOcr(finalResult)
+                            showScreen(screenAssessment, navLblAssess)
+                        }
+                        .addOnFailureListener { e ->
+                            Log.w(TAG, "[OCR-C] Pass 2 failed: ${e.message}. Falling back to Pass 1 result.", e)
+                            Log.d(TAG, "========== [OCR-D] RAW TEXT ==========\n$rawText1\n=======================================")
+                            populateAssessmentFromOcr(result1)
+                            showScreen(screenAssessment, navLblAssess)
+                        }
                 }
                 .addOnFailureListener { e ->
-                    Toast.makeText(this, "OCR failed: ${e.message}. Please enter information manually.", Toast.LENGTH_LONG).show()
+                    Log.e(TAG, "========== [OCR-C] ML KIT ==========")
+                    Log.e(TAG, "STATUS: FAILED (${e.message})")
+                    Log.e(TAG, "CHARACTER COUNT: 0")
+                    Log.e(TAG, "BLOCK COUNT: 0")
+                    Log.e(TAG, "=====================================")
+                    val failedResult = OcrResult(
+                        success = false,
+                        rawText = "",
+                        charCount = 0,
+                        parsedData = OcrExtractedPatient(),
+                        fieldsFoundCount = 0,
+                        statusMessage = "ML Kit Text Recognition Failed: ${e.message}",
+                        errorMsg = e.message
+                    )
+                    populateAssessmentFromOcr(failedResult)
                     showScreen(screenAssessment, navLblAssess)
                 }
         } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Error processing report: ${e.message}", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "[OCR-C EXCEPTION] ${e.message}", e)
+            val exceptionResult = OcrResult(
+                success = false,
+                rawText = "",
+                charCount = 0,
+                parsedData = OcrExtractedPatient(),
+                fieldsFoundCount = 0,
+                statusMessage = "OCR Processing Exception: ${e.message}",
+                errorMsg = e.message
+            )
+            populateAssessmentFromOcr(exceptionResult)
             showScreen(screenAssessment, navLblAssess)
         }
     }
 
     private fun processOcrPdf(pdfUri: Uri) {
+        Log.d(TAG, "========== [OCR-A] INPUT ==========")
+        Log.d(TAG, "URI: $pdfUri")
+        Log.d(TAG, "TYPE: application/pdf")
+        Log.d(TAG, "SOURCE: PDF Document")
+        Log.d(TAG, "===================================")
+
         executor.execute {
-            val pages = PdfOcrExtractor.renderPdfToBitmaps(this, pdfUri, maxPages = 3)
+            val pages = PdfOcrExtractor.renderPdfToBitmaps(this, pdfUri, maxPages = 5)
             if (pages.isEmpty()) {
+                Log.e(TAG, "[OCR-B] PDF rendering returned 0 page Bitmaps")
                 mainHandler.post {
-                    Toast.makeText(this, "Could not render PDF document. Please choose an image or enter manually.", Toast.LENGTH_LONG).show()
+                    val pdfFailResult = OcrResult(
+                        success = false,
+                        rawText = "",
+                        charCount = 0,
+                        parsedData = OcrExtractedPatient(),
+                        fieldsFoundCount = 0,
+                        statusMessage = "PDF Decoding Failed — 0 pages rendered",
+                        errorMsg = "Unable to render PDF pages"
+                    )
+                    populateAssessmentFromOcr(pdfFailResult)
                     showScreen(screenAssessment, navLblAssess)
                 }
                 return@execute
             }
 
-            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-            val combinedText = StringBuilder()
-            var processedCount = 0
+            Log.d(TAG, "========== [OCR-B] BITMAP (PDF) ==========")
+            Log.d(TAG, "PAGES RENDERED: ${pages.size}")
+            Log.d(TAG, "PAGE 1 DIMENSIONS: ${pages[0].width}x${pages[0].height}")
+            Log.d(TAG, "VALID: true")
+            Log.d(TAG, "==========================================")
 
             mainHandler.post {
                 Toast.makeText(this, "Processing PDF report pages on-device...", Toast.LENGTH_SHORT).show()
             }
 
-            for (pageBitmap in pages) {
-                val preprocessed = OcrImagePreprocessor.preprocessBitmap(pageBitmap)
-                val image = InputImage.fromBitmap(preprocessed, 0)
+            val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            val pageTexts = Array(pages.size) { "" }
+
+            // Strictly ordered sequential page processing
+            fun processPage(index: Int) {
+                if (index >= pages.size) {
+                    val combinedText = pageTexts.mapIndexed { idx, txt -> "--- PAGE ${idx + 1} ---\n$txt" }.joinToString("\n\n")
+                    Log.d(TAG, "========== [OCR-C] ML KIT (PDF COMPLETE) ==========")
+                    Log.d(TAG, "STATUS: SUCCESS")
+                    Log.d(TAG, "TOTAL PAGES PROCESSED: ${pages.size}")
+                    Log.d(TAG, "TOTAL CHARACTER COUNT: ${combinedText.length}")
+                    Log.d(TAG, "===================================================")
+                    Log.d(TAG, "========== [OCR-D] RAW TEXT (PDF) ==========\n$combinedText\n==========================================")
+
+                    val ocrResult = OcrReportParser.parseText(combinedText)
+                    mainHandler.post {
+                        populateAssessmentFromOcr(ocrResult)
+                        showScreen(screenAssessment, navLblAssess)
+                    }
+                    return
+                }
+
+                val pageBitmap = pages[index]
+                val image = InputImage.fromBitmap(pageBitmap, 0)
                 recognizer.process(image)
                     .addOnSuccessListener { visionText ->
-                        combinedText.append("\n").append(visionText.text)
-                        processedCount++
-                        if (processedCount == pages.size) {
-                            val parsed = OcrReportParser.parseText(combinedText.toString())
-                            populateAssessmentFromOcr(parsed)
-                            showScreen(screenOcrReview, navLblAssess)
-                        }
+                        pageTexts[index] = visionText.text
+                        processPage(index + 1)
                     }
-                    .addOnFailureListener {
-                        processedCount++
-                        if (processedCount == pages.size) {
-                            val parsed = OcrReportParser.parseText(combinedText.toString())
-                            populateAssessmentFromOcr(parsed)
-                            showScreen(screenOcrReview, navLblAssess)
-                        }
+                    .addOnFailureListener { e ->
+                        pageTexts[index] = "[Page ${index + 1} OCR Failed: ${e.message}]"
+                        processPage(index + 1)
                     }
             }
+
+            processPage(0)
         }
     }
 
-    private fun populateAssessmentFromOcr(parsed: OcrExtractedPatient) {
-        parsed.age?.let { etAge.setText(String.format(Locale.US, "%.1f", it)) }
-        parsed.height?.let { etHeight.setText(String.format(Locale.US, "%.1f", it)) }
-        parsed.weight?.let { etWeight.setText(String.format(Locale.US, "%.1f", it)) }
+    private fun populateAssessmentFromOcr(ocrResult: OcrResult) {
+        resetAssessmentForm()
+        val parsed = ocrResult.parsedData
+
+        val missingFields = mutableListOf<String>()
+        if (parsed.age == null) missingFields.add("Age")
+        if (parsed.gender == null) missingFields.add("Gender")
+        if (parsed.height == null) missingFields.add("Height")
+        if (parsed.weight == null) missingFields.add("Weight")
+        if (parsed.apHi == null || parsed.apLo == null) missingFields.add("Blood Pressure")
+        if (parsed.cholesterol == null) missingFields.add("Cholesterol")
+        if (parsed.glucose == null) missingFields.add("Glucose")
+        if (parsed.smoke == null) missingFields.add("Smoking Status")
+        if (parsed.alco == null) missingFields.add("Alcohol Intake")
+        if (parsed.active == null) missingFields.add("Physical Activity")
+
+        Log.d(TAG, "========== [OCR-E] PARSED DATA ==========")
+        Log.d(TAG, "Age: ${parsed.age ?: "Not detected"}")
+        Log.d(TAG, "Gender: ${when(parsed.gender) { 1 -> "Female (1)"; 2 -> "Male (2)"; else -> "Not detected" }}")
+        Log.d(TAG, "Height: ${parsed.height ?: "Not detected"}")
+        Log.d(TAG, "Weight: ${parsed.weight ?: "Not detected"}")
+        Log.d(TAG, "SBP: ${parsed.apHi ?: "Not detected"}")
+        Log.d(TAG, "DBP: ${parsed.apLo ?: "Not detected"}")
+        Log.d(TAG, "Cholesterol: ${when(parsed.cholesterol) { 1 -> "Level 1 (Normal)"; 2 -> "Level 2 (Above Normal)"; 3 -> "Level 3 (Well Above Normal)"; else -> "Not detected" }}")
+        Log.d(TAG, "Glucose: ${when(parsed.glucose) { 1 -> "Level 1 (Normal)"; 2 -> "Level 2 (Above Normal)"; 3 -> "Level 3 (Well Above Normal)"; else -> "Not detected" }}")
+        Log.d(TAG, "Smoking: ${when(parsed.smoke) { 0 -> "Non-smoker (0)"; 1 -> "Active smoker (1)"; else -> "Not detected / Ambiguous" }}")
+        Log.d(TAG, "Alcohol: ${when(parsed.alco) { 0 -> "Non-drinker (0)"; 1 -> "Regular drinker (1)"; else -> "Not detected / Ambiguous" }}")
+        Log.d(TAG, "Activity: ${when(parsed.active) { 0 -> "Inactive (0)"; 1 -> "Active (1)"; else -> "Not detected" }}")
+        Log.d(TAG, "Detected fields: ${parsed.fieldsFoundCount()}/10")
+        Log.d(TAG, "Missing: ${if (missingFields.isEmpty()) "None" else missingFields.joinToString(", ")}")
+        Log.d(TAG, "Ambiguous: ${if (parsed.ambiguousFields.isEmpty()) "None" else parsed.ambiguousFields.joinToString(", ")}")
+        Log.d(TAG, "=========================================")
+
+        // Automatically populate extracted values into form fields
+        parsed.age?.let {
+            val ageStr = if (it % 1.0 == 0.0) it.toInt().toString() else String.format(Locale.US, "%.1f", it)
+            etAge.setText(ageStr)
+        }
+        parsed.height?.let {
+            val hStr = if (it % 1.0 == 0.0) it.toInt().toString() else String.format(Locale.US, "%.1f", it)
+            etHeight.setText(hStr)
+        }
+        parsed.weight?.let {
+            val wStr = if (it % 1.0 == 0.0) it.toInt().toString() else String.format(Locale.US, "%.1f", it)
+            etWeight.setText(wStr)
+        }
         parsed.apHi?.let { etApHi.setText(it.toString()) }
         parsed.apLo?.let { etApLo.setText(it.toString()) }
 
-        parsed.gender?.let { if (it in 1..2) spinnerGender.setSelection(it - 1) }
-        parsed.cholesterol?.let { if (it in 1..3) spinnerCholesterol.setSelection(it - 1) }
-        parsed.glucose?.let { if (it in 1..3) spinnerGlucose.setSelection(it - 1) }
-        parsed.smoke?.let { if (it in 0..1) spinnerSmoke.setSelection(it) }
-        parsed.alco?.let { if (it in 0..1) spinnerAlco.setSelection(it) }
-        parsed.active?.let { if (it in 0..1) spinnerActive.setSelection(it) }
+        // Explicit Model Value -> Spinner Position Mapping
+        parsed.gender?.let { if (it in 1..2) spinnerGender.setSelection(it) }
+        parsed.cholesterol?.let { if (it in 1..3) spinnerCholesterol.setSelection(it) }
+        parsed.glucose?.let { if (it in 1..3) spinnerGlucose.setSelection(it) }
+        parsed.smoke?.let { if (it in 0..1) spinnerSmoke.setSelection(it + 1) }
+        parsed.alco?.let { if (it in 0..1) spinnerAlco.setSelection(it + 1) }
+        parsed.active?.let { if (it in 0..1) spinnerActive.setSelection(it + 1) }
 
-        val alertText = StringBuilder("OCR Extraction Complete — Your report is processed on this device.")
+        Log.d(TAG, "========== [OCR-F] UI POPULATION ==========")
+        Log.d(TAG, "Age: '${etAge.text}'")
+        Log.d(TAG, "Gender: '${spinnerGender.selectedItem}' (pos=${spinnerGender.selectedItemPosition})")
+        Log.d(TAG, "Height: '${etHeight.text}'")
+        Log.d(TAG, "Weight: '${etWeight.text}'")
+        Log.d(TAG, "SBP: '${etApHi.text}'")
+        Log.d(TAG, "DBP: '${etApLo.text}'")
+        Log.d(TAG, "Cholesterol: '${spinnerCholesterol.selectedItem}' (pos=${spinnerCholesterol.selectedItemPosition})")
+        Log.d(TAG, "Glucose: '${spinnerGlucose.selectedItem}' (pos=${spinnerGlucose.selectedItemPosition})")
+        Log.d(TAG, "Smoking: '${spinnerSmoke.selectedItem}' (pos=${spinnerSmoke.selectedItemPosition})")
+        Log.d(TAG, "Alcohol: '${spinnerAlco.selectedItem}' (pos=${spinnerAlco.selectedItemPosition})")
+        Log.d(TAG, "Activity: '${spinnerActive.selectedItem}' (pos=${spinnerActive.selectedItemPosition})")
+        Log.d(TAG, "============================================")
+
+        val alertText = StringBuilder("OCR DIAGNOSTIC STATUS REPORT\n")
+        val fieldsFound = parsed.fieldsFoundCount()
+        if (fieldsFound == 10) {
+            alertText.append("✅ OCR Successful — 10/10 fields auto-populated.\n")
+        } else if (fieldsFound > 0) {
+            alertText.append("ℹ️ OCR Completed — ").append(fieldsFound).append("/10 fields auto-populated.\n")
+        } else {
+            alertText.append("⚠️ OCR Completed — 0/10 clinical fields detected. Please enter details manually.\n")
+        }
+
+        alertText.append("• Characters Detected: ").append(ocrResult.charCount).append("\n")
+
+        if (missingFields.isNotEmpty()) {
+            alertText.append("\n⚠️ Missing fields requiring manual entry: ").append(missingFields.joinToString(", "))
+        }
+        if (parsed.ambiguousFields.isNotEmpty()) {
+            alertText.append("\n\n❓ Needs verification: ").append(parsed.ambiguousFields.joinToString(", "))
+        }
         if (parsed.warningMsg != null) {
             alertText.append("\n\n⚠️ ").append(parsed.warningMsg)
         }
@@ -508,30 +869,64 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleAnalyzePatient() {
-        val age = etAge.text.toString().toDoubleOrNull() ?: 55.5
-        val height = etHeight.text.toString().toDoubleOrNull() ?: 165.0
-        val weight = etWeight.text.toString().toDoubleOrNull() ?: 70.0
-        val apHi = etApHi.text.toString().toIntOrNull() ?: 140
-        val apLo = etApLo.text.toString().toIntOrNull() ?: 90
+        val age = etAge.text.toString().toDoubleOrNull()
+        val height = etHeight.text.toString().toDoubleOrNull()
+        val weight = etWeight.text.toString().toDoubleOrNull()
+        val apHi = etApHi.text.toString().toIntOrNull()
+        val apLo = etApLo.text.toString().toIntOrNull()
 
-        if (apLo >= apHi) {
-            Toast.makeText(this, "Systolic BP must be strictly greater than Diastolic BP", Toast.LENGTH_SHORT).show()
+        val genderPos = spinnerGender.selectedItemPosition
+        val cholPos = spinnerCholesterol.selectedItemPosition
+        val glucPos = spinnerGlucose.selectedItemPosition
+        val smokePos = spinnerSmoke.selectedItemPosition
+        val alcoPos = spinnerAlco.selectedItemPosition
+        val activePos = spinnerActive.selectedItemPosition
+
+        // Strict Validation: NO FALLBACK TO DEMO DATA!
+        val missing = mutableListOf<String>()
+        if (age == null || age < 1.0 || age > 120.0) missing.add("Age (1-120 yrs)")
+        if (genderPos == 0) missing.add("Gender")
+        if (height == null || height < 50.0 || height > 250.0) missing.add("Height (50-250 cm)")
+        if (weight == null || weight < 20.0 || weight > 300.0) missing.add("Weight (20-300 kg)")
+        if (apHi == null || apHi < 60 || apHi > 260) missing.add("Systolic BP")
+        if (apLo == null || apLo < 40 || apLo > 180) missing.add("Diastolic BP")
+        if (apHi != null && apLo != null && apLo >= apHi) missing.add("Systolic > Diastolic BP")
+        if (cholPos == 0) missing.add("Cholesterol Level")
+        if (glucPos == 0) missing.add("Glucose Level")
+        if (smokePos == 0) missing.add("Smoking Status")
+        if (alcoPos == 0) missing.add("Alcohol Intake")
+        if (activePos == 0) missing.add("Physical Activity")
+
+        if (missing.isNotEmpty()) {
+            Toast.makeText(
+                this,
+                "Please complete all required fields:\n${missing.joinToString(", ")}",
+                Toast.LENGTH_LONG
+            ).show()
             return
         }
 
-        val gender = spinnerGender.selectedItemPosition + 1
-        val cholesterol = spinnerCholesterol.selectedItemPosition + 1
-        val glucose = spinnerGlucose.selectedItemPosition + 1
-        val smoke = spinnerSmoke.selectedItemPosition
-        val alco = spinnerAlco.selectedItemPosition
-        val active = spinnerActive.selectedItemPosition
+        // Convert UI Spinner Selected Positions back to ML Model Encoded Values
+        val gender = genderPos // Pos 1 ("Female") -> 1, Pos 2 ("Male") -> 2
+        val cholesterol = cholPos // Pos 1 ("Normal") -> 1, Pos 2 ("Above") -> 2, Pos 3 ("Well Above") -> 3
+        val glucose = glucPos // Pos 1 ("Normal") -> 1, Pos 2 ("Above") -> 2, Pos 3 ("Well Above") -> 3
+        val smoke = smokePos - 1 // Pos 1 ("Non-Smoker") -> 0, Pos 2 ("Active Smoker") -> 1
+        val alco = alcoPos - 1 // Pos 1 ("Non-Drinker") -> 0, Pos 2 ("Regular Drinker") -> 1
+        val active = activePos - 1 // Pos 1 ("Physically Inactive") -> 0, Pos 2 ("Physically Active") -> 1
+
+        Log.d(TAG, "========== [MODEL INPUT VERIFICATION] ==========")
+        Log.d(TAG, "SUBMITTED FORM TO MODEL:")
+        Log.d(TAG, "age=$age, gender=$gender, height=$height, weight=$weight")
+        Log.d(TAG, "ap_hi=$apHi, ap_lo=$apLo, cholesterol=$cholesterol, gluc=$glucose")
+        Log.d(TAG, "smoke=$smoke, alco=$alco, active=$active")
+        Log.d(TAG, "===============================================")
 
         val isOnlineMode = spinnerMode.selectedItemPosition == 1
 
         if (isOnlineMode) {
-            executeOnlineInference(age, gender, height, weight, apHi, apLo, cholesterol, glucose, smoke, alco, active)
+            executeOnlineInference(age!!, gender, height!!, weight!!, apHi!!, apLo!!, cholesterol, glucose, smoke, alco, active)
         } else {
-            executeOfflineInference(age, gender, height, weight, apHi, apLo, cholesterol, glucose, smoke, alco, active)
+            executeOfflineInference(age!!, gender, height!!, weight!!, apHi!!, apLo!!, cholesterol, glucose, smoke, alco, active)
         }
     }
 
