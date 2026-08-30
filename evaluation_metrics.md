@@ -11,7 +11,7 @@ No model weights, scaling parameters, neural network architectures, or app infer
 ## 2. Dataset
 
 * **Source Dataset**: Kaggle Cardiovascular Disease Dataset (70,000 raw patient records).
-* **Cleaned Dataset Size**: **68,666 patient records** (after removing invalid blood pressure outliers, e.g. $\text{ap\_hi} \le 70$ or $\text{ap\_hi} \ge 240$, $\text{ap\_lo} \le 40$ or $\text{ap\_lo} \ge 140$).
+* **Cleaned Dataset Size**: **68,666 patient records** 
 * **Features (11 Input Clinical Variables)**:
   1. `age`: Patient age in float years (converted from raw days / 365.25).
   2. `gender`: Biological sex (`1` = Female, `2` = Male).
